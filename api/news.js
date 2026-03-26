@@ -1,4 +1,5 @@
- const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                            
+ const CACHE_TTL_MS = 60 * 60 * 1000;
+
   const QUERIES = [
     'theme park europe',
     'waterpark family travel',
