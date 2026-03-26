@@ -1,4 +1,4 @@
-const { put, head } = require('@vercel/blob');
+const { put, list } = require('@vercel/blob');
 
 const CACHE_KEY = 'news-cache.json';
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -70,9 +70,9 @@ module.exports = async function handler(req, res) {
   // --- Check Blob cache ---
   if (!forceRefresh && !debug) {
     try {
-      const blobMeta = await head(CACHE_KEY, { token: process.env.BLOB_READ_WRITE_TOKEN });
-      if (blobMeta?.url) {
-        const cacheRes = await fetch(blobMeta.url);
+      const { blobs } = await list({ prefix: CACHE_KEY, token: process.env.BLOB_READ_WRITE_TOKEN });
+      if (blobs.length > 0) {
+        const cacheRes = await fetch(blobs[0].url);
         if (cacheRes.ok) {
           const cached = await cacheRes.json();
           if (Date.now() - cached.cachedAt < CACHE_TTL_MS) {
@@ -94,7 +94,7 @@ module.exports = async function handler(req, res) {
     if (!debug) {
       try {
         await put(CACHE_KEY, JSON.stringify(payload), {
-          access: 'private',
+          access: 'public',
           contentType: 'application/json',
           addRandomSuffix: false,
           token: process.env.BLOB_READ_WRITE_TOKEN,
