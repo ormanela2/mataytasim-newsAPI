@@ -1,6 +1,3 @@
-const { put, list } = require('@vercel/blob');
-
-const CACHE_KEY = 'news-cache.json';
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 const QUERIES = [
@@ -9,6 +6,9 @@ const QUERIES = [
   'museum kids europe',
   'family travel europe',
 ];
+
+// In-memory cache (resets on cold start, good enough for a news ticker)
+let memCache = null;
 
 async function fetchFresh(apiKey, debug) {
   const rawResults = {};
@@ -67,43 +67,15 @@ module.exports = async function handler(req, res) {
   const forceRefresh = req.query.refresh === 'true';
   const debug = req.query.debug === 'true';
 
-  // --- Check Blob cache ---
-  if (!forceRefresh && !debug) {
-    try {
-      const { blobs } = await list({ prefix: CACHE_KEY, token: process.env.BLOB_READ_WRITE_TOKEN });
-      if (blobs.length > 0) {
-        const cacheRes = await fetch(blobs[0].url);
-        if (cacheRes.ok) {
-          const cached = await cacheRes.json();
-          if (Date.now() - cached.cachedAt < CACHE_TTL_MS) {
-            res.setHeader('X-Cache', 'HIT');
-            return res.status(200).json(cached);
-          }
-        }
-      }
-    } catch {
-      // cache miss — continue to fetch fresh
-    }
+  // Check in-memory cache
+  if (!forceRefresh && !debug && memCache && (Date.now() - memCache.cachedAt < CACHE_TTL_MS)) {
+    res.setHeader('X-Cache', 'HIT');
+    return res.status(200).json(memCache);
   }
 
-  // --- Fetch fresh from NewsAPI ---
   try {
     const payload = await fetchFresh(apiKey, debug);
-
-    // Save to Blob (skip on debug)
-    if (!debug) {
-      try {
-        await put(CACHE_KEY, JSON.stringify(payload), {
-          access: 'public',
-          contentType: 'application/json',
-          addRandomSuffix: false,
-          token: process.env.BLOB_READ_WRITE_TOKEN,
-        });
-      } catch (blobErr) {
-        console.error('Blob save error:', blobErr.message);
-      }
-    }
-
+    if (!debug) memCache = payload;
     res.setHeader('X-Cache', 'MISS');
     return res.status(200).json(payload);
   } catch (err) {
