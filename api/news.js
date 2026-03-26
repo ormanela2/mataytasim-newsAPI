@@ -1,13 +1,14 @@
- const { put } = require('@vercel/blob');                                                                                                                        const CACHE_KEY = 'news-cache.json';                                            const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-  const QUERIES = [
+ const { put } = require('@vercel/blob');                                      
+  const CACHE_KEY = 'news-cache.json';                                            const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+                                                                                  const QUERIES = [
     'theme park europe',
     'waterpark family travel',
     'museum kids europe',
     'family travel europe',
   ];
 
-  async function fetchFresh(apiKey) {
+  async function fetchFresh(apiKey, debug) {
+    const rawResults = {};
     const results = await Promise.all(QUERIES.map(async (q) => {
       const params = new URLSearchParams({
         q,
@@ -18,10 +19,19 @@
       });
       try {
         const res = await fetch(`https://newsapi.org/v2/everything?${params}`);
-        if (!res.ok) return [];
         const data = await res.json();
+        if (debug) rawResults[q] = {
+          status: res.status,
+          totalResults: data.totalResults,
+          articleCount: (data.articles || []).length,
+          sample: data.articles?.[0] || null,
+          apiStatus: data.status,
+          message: data.message
+        };
+        if (!res.ok) return [];
         return data.articles || [];
-      } catch {
+      } catch (e) {
+        if (debug) rawResults[q] = { error: e.message };
         return [];
       }
     }));
@@ -42,7 +52,8 @@
       }
     }
 
-    return { cachedAt: Date.now(), articles };
+    return { cachedAt: Date.now(), articles, ...(debug ? { debug: rawResults } :
+   {}) };
   }
 
   module.exports = async function handler(req, res) {
@@ -52,9 +63,10 @@
     if (!apiKey) return res.status(500).json({ error: 'Missing NEWSAPI_KEY' });
 
     const forceRefresh = req.query.refresh === 'true';
+    const debug = req.query.debug === 'true';
 
     // --- Check Blob cache ---
-    if (!forceRefresh) {
+    if (!forceRefresh && !debug) {
       try {
         const token = process.env.BLOB_READ_WRITE_TOKEN;
         const storeId = token?.match(/vercel_blob_rw_([^_]+)/)?.[1];
@@ -77,17 +89,19 @@
 
     // --- Fetch fresh from NewsAPI ---
     try {
-      const payload = await fetchFresh(apiKey);
+      const payload = await fetchFresh(apiKey, debug);
 
-      // Save to Blob
-      try {
-        await put(CACHE_KEY, JSON.stringify(payload), {
-          access: 'public',
-          contentType: 'application/json',
-          addRandomSuffix: false,
-        });
-      } catch (blobErr) {
-        console.error('Blob save error:', blobErr);
+      // Save to Blob (skip on debug)
+      if (!debug) {
+        try {
+          await put(CACHE_KEY, JSON.stringify(payload), {
+            access: 'public',
+            contentType: 'application/json',
+            addRandomSuffix: false,
+          });
+        } catch (blobErr) {
+          console.error('Blob save error:', blobErr);
+        }
       }
 
       res.setHeader('X-Cache', 'MISS');
