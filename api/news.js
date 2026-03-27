@@ -1,6 +1,6 @@
- const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                                                                                                                                                                                                                                                const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
-    'traveling with kids europe',
-    'theme park europe kids',
+const CACHE_TTL_MS = 60 * 60 * 1000;                                          
+  const QUERIES = [                                                                 'family travel destinations europe',
+    'traveling with kids europe',                                                   'theme park europe kids',
     'water park families europe',
     'kid-friendly cities europe',
     'family vacation europe 2026',
@@ -11,7 +11,8 @@
   ];
 
   const TRAVEL_KEYWORDS = [
-    'travel', 'family', 'kids', 'children', 'toddler', 'theme park', 'waterpark', 'water park',
+    'travel', 'family', 'kids', 'children', 'toddler', 'theme park',
+  'waterpark', 'water park',
     'museum', 'vacation', 'holiday', 'resort', 'hotel', 'disney', 'legoland',
     'attraction', 'adventure', 'trip', 'tour', 'destination', 'summer',
     'flight', 'cruise', 'playground', 'zoo', 'aquarium', 'park', 'amusement',
@@ -67,7 +68,8 @@
       }
     }
 
-    return { cachedAt: Date.now(), articles, ...(debug ? { debug: rawResults } : {}) };
+    return { cachedAt: Date.now(), articles, ...(debug ? { debug: rawResults } :
+   {}) };
   }
 
   module.exports = async function handler(req, res) {
@@ -82,7 +84,8 @@
     const forceRefresh = req.query.refresh === 'true';
     const debug = req.query.debug === 'true';
 
-    if (!forceRefresh && !debug && memCache && (Date.now() - memCache.cachedAt < CACHE_TTL_MS)) {
+    if (!forceRefresh && !debug && memCache && (Date.now() - memCache.cachedAt <
+   CACHE_TTL_MS)) {
       res.setHeader('X-Cache', 'HIT');
       return res.status(200).json(memCache);
     }
