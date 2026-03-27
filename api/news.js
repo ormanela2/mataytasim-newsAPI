@@ -1,5 +1,6 @@
 const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                                                                                                                                                                                                                                                const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
-    'traveling with kids europe',                                                                                                                                                                                     'theme park europe kids',
+    'traveling with kids europe',
+    'theme park europe kids',
     'water park families europe',
     'kid-friendly cities europe',
     'family vacation europe 2026',
@@ -28,7 +29,6 @@ const CACHE_TTL_MS = 60 * 60 * 1000;                                            
   ];
 
   const TRUSTED_SOURCES = [
-    // Major travel
     'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
     'lonelyplanet.com', 'cntraveler.com', 'afar.com', 'tripadvisor.com',
     'familyvacationist.com', 'disneyfoodblog.com', 'insidethemagic.net',
@@ -44,28 +44,35 @@ const CACHE_TTL_MS = 60 * 60 * 1000;                                            
     'familytravelmagazine.com', 'tripswithkids.com', 'breakingtravelnews.com',
     'travelweekly.co.uk', 'travelmole.com', 'ttgmedia.com',
     'adventurefamilytraveler.com', 'europeantraveller.com',
-    // Central & Eastern Europe
     'hungarytoday.hu', 'dailynewshungary.com', 'xpatloop.com',
     'spectator.sme.sk', 'travelingslovakia.com', 'slovakia.travel',
     'praguemonitor.com', 'czech-tourism.com', 'polandin.com',
     'thenews.pl', 'poland.travel', 'austria.info', 'thelocal.at',
     'romaniajournal.ro', 'romaniatourism.com',
-    // Greece
     'greeka.com', 'visitgreece.gr', 'greeknewsagenda.gr',
-    // General Europe
     'europeanbestdestinations.com', 'euronews.com/travel',
     'iamexpat.com', 'thelocal.com',
-    // Israel
     'ynet.co.il', 'walla.co.il', 'mako.co.il', 'haaretz.com',
     'timesofisrael.com', 'jpost.com', 'israelhayom.com',
     'israeltravels.co.il', 'kaveret.co.il',
   ];
 
+  const DOMAINS = [
+    'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
+    'lonelyplanet.com', 'cntraveler.com', 'afar.com', 'insidethemagic.net',
+    'disneyfoodblog.com', 'skift.com', 'holidaypirates.com', 'thetravel.com',
+    'matadornetwork.com', 'smartertravel.com', 'timeout.com', 'fodors.com',
+    'frommers.com', 'roughguides.com', 'wanderlust.co.uk', 'blooloop.com',
+    'amusementtoday.com', 'attractionsmanagement.com', 'euroweeklynews.com',
+    'timesofisrael.com', 'jpost.com', 'europeanbestdestinations.com',
+  ].join(',');
+
   let memCache = null;
 
   async function fetchFresh(apiKey, debug) {
     const rawResults = {};
-    const results = await Promise.all(QUERIES.map(async (q) => {
+
+    const keywordResults = await Promise.all(QUERIES.map(async (q) => {
       const params = new URLSearchParams({
         q,
         language: 'en',
@@ -91,6 +98,32 @@ const CACHE_TTL_MS = 60 * 60 * 1000;                                            
         return [];
       }
     }));
+
+    let domainResults = [];
+    try {
+      const params = new URLSearchParams({
+        q: 'travel family kids',
+        domains: DOMAINS,
+        language: 'en',
+        sortBy: 'publishedAt',
+        pageSize: '30',
+        apiKey,
+      });
+      const res = await fetch(`https://newsapi.org/v2/everything?${params}`);
+      const data = await res.json();
+      if (debug) rawResults['_domains'] = {
+        status: res.status,
+        totalResults: data.totalResults,
+        articleCount: (data.articles || []).length,
+        apiStatus: data.status,
+        message: data.message,
+      };
+      if (res.ok) domainResults = data.articles || [];
+    } catch (e) {
+      if (debug) rawResults['_domains'] = { error: e.message };
+    }
+
+    const results = [...keywordResults, domainResults];
 
     const seen = new Set();
     const articles = [];
