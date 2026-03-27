@@ -1,6 +1,9 @@
-const CACHE_TTL_MS = 60 * 60 * 1000;                                          
-  const QUERIES = [                                                                 'family travel destinations europe',
-    'traveling with kids europe',                                                   'theme park europe kids',
+const CACHE_TTL_MS = 60 * 60 * 1000;
+
+  const QUERIES = [
+    'family travel destinations europe',
+    'traveling with kids europe',
+    'theme park europe kids',
     'water park families europe',
     'kid-friendly cities europe',
     'family vacation europe 2026',
@@ -10,14 +13,16 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
     'outdoor activities kids europe',
   ];
 
+  const FAMILY_KEYWORDS = [
+    'family', 'kids', 'children', 'toddler', 'kid-friendly', 'family-friendly',
+    'families', 'parents', 'with kids', 'for kids',
+  ];
+
   const TRAVEL_KEYWORDS = [
-    'travel', 'family', 'kids', 'children', 'toddler', 'theme park',
-  'waterpark', 'water park',
-    'museum', 'vacation', 'holiday', 'resort', 'hotel', 'disney', 'legoland',
-    'attraction', 'adventure', 'trip', 'tour', 'destination', 'summer',
-    'flight', 'cruise', 'playground', 'zoo', 'aquarium', 'park', 'amusement',
-    'itinerary', 'accommodation', 'getaway', 'kid-friendly', 'family-friendly',
-    'outdoor', 'hiking', 'nature trail', 'road trip', 'budget',
+    'travel', 'theme park', 'waterpark', 'water park', 'museum', 'vacation',
+    'holiday', 'resort', 'disney', 'legoland', 'attraction', 'adventure',
+    'trip', 'tour', 'destination', 'cruise', 'playground', 'zoo', 'aquarium',
+    'amusement park', 'itinerary', 'getaway', 'road trip', 'accommodation',
   ];
 
   let memCache = null;
@@ -57,7 +62,10 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
       for (const a of batch) {
         if (!a.title || !a.url || seen.has(a.url)) continue;
         const titleLower = a.title.toLowerCase();
-        if (!TRAVEL_KEYWORDS.some(kw => titleLower.includes(kw))) continue;
+        const hasFamily = FAMILY_KEYWORDS.some(kw => titleLower.includes(kw));
+        const hasTravel = TRAVEL_KEYWORDS.some(kw => titleLower.includes(kw));
+        if (!hasFamily && !hasTravel) continue;
+        if (!hasFamily && !titleLower.includes('travel')) continue;
         seen.add(a.url);
         articles.push({
           title: a.title.split(' - ')[0].trim(),
@@ -68,8 +76,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
       }
     }
 
-    return { cachedAt: Date.now(), articles, ...(debug ? { debug: rawResults } :
-   {}) };
+    return { cachedAt: Date.now(), articles, ...(debug ? { debug: rawResults } : {}) };
   }
 
   module.exports = async function handler(req, res) {
@@ -84,8 +91,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
     const forceRefresh = req.query.refresh === 'true';
     const debug = req.query.debug === 'true';
 
-    if (!forceRefresh && !debug && memCache && (Date.now() - memCache.cachedAt <
-   CACHE_TTL_MS)) {
+    if (!forceRefresh && !debug && memCache && (Date.now() - memCache.cachedAt < CACHE_TTL_MS)) {
       res.setHeader('X-Cache', 'HIT');
       return res.status(200).json(memCache);
     }
