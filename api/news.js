@@ -1,5 +1,4 @@
-const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                            
-  const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
+const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                                                                                                                                                                                                                                                const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
     'traveling with kids europe',                                                                                                                                                                                     'theme park europe kids',
     'water park families europe',
     'kid-friendly cities europe',
@@ -29,10 +28,37 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
   ];
 
   const TRUSTED_SOURCES = [
+    // Major travel
     'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
     'lonelyplanet.com', 'cntraveler.com', 'afar.com', 'tripadvisor.com',
     'familyvacationist.com', 'disneyfoodblog.com', 'insidethemagic.net',
-    'skift.com', 'holidaypirates.com',
+    'skift.com', 'holidaypirates.com', 'trekaroo.com', 'travelingmom.com',
+    'mommypoppins.com', 'thetravel.com', 'frommers.com', 'fodors.com',
+    'roughguides.com', 'worldtravelguide.net', 'timeout.com',
+    'theguardian.com/travel', 'telegraph.co.uk/travel', 'bbc.com/travel',
+    'independent.co.uk/travel', 'nationalgeographic.com/travel',
+    'familytraveler.com', 'euroweeklynews.com', 'planetware.com',
+    'matadornetwork.com', 'smartertravel.com', 'travelpulse.com',
+    'travelweekly.com', 'wanderlust.co.uk', 'blooloop.com',
+    'amusementtoday.com', 'attractionsmanagement.com', 'eturbonews.com',
+    'familytravelmagazine.com', 'tripswithkids.com', 'breakingtravelnews.com',
+    'travelweekly.co.uk', 'travelmole.com', 'ttgmedia.com',
+    'adventurefamilytraveler.com', 'europeantraveller.com',
+    // Central & Eastern Europe
+    'hungarytoday.hu', 'dailynewshungary.com', 'xpatloop.com',
+    'spectator.sme.sk', 'travelingslovakia.com', 'slovakia.travel',
+    'praguemonitor.com', 'czech-tourism.com', 'polandin.com',
+    'thenews.pl', 'poland.travel', 'austria.info', 'thelocal.at',
+    'romaniajournal.ro', 'romaniatourism.com',
+    // Greece
+    'greeka.com', 'visitgreece.gr', 'greeknewsagenda.gr',
+    // General Europe
+    'europeanbestdestinations.com', 'euronews.com/travel',
+    'iamexpat.com', 'thelocal.com',
+    // Israel
+    'ynet.co.il', 'walla.co.il', 'mako.co.il', 'haaretz.com',
+    'timesofisrael.com', 'jpost.com', 'israelhayom.com',
+    'israeltravels.co.il', 'kaveret.co.il',
   ];
 
   let memCache = null;
