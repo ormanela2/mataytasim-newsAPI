@@ -1,7 +1,4 @@
- const CACHE_TTL_MS = 60 * 60 * 1000;
-
-  const QUERIES = [
-    'theme park europe',
+const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                                                                                                                                                                                                                                                const QUERIES = [                                                                                                                                                                                                   'theme park europe',
     'waterpark family travel',
     'museum kids europe',
     'family travel europe',
@@ -38,19 +35,27 @@
       }
     }));
 
+    const TRAVEL_KEYWORDS = [
+      'travel', 'family', 'kids', 'children', 'theme park', 'waterpark', 'water park',
+      'museum', 'vacation', 'holiday', 'resort', 'hotel', 'disney', 'legoland',
+      'attraction', 'adventure', 'trip', 'tour', 'destination', 'europe', 'summer',
+      'flight', 'cruise', 'safari', 'camp', 'playground', 'zoo', 'aquarium'
+    ];
+
     const seen = new Set();
     const articles = [];
     for (const batch of results) {
       for (const a of batch) {
-        if (a.title && a.url && !seen.has(a.url)) {
-          seen.add(a.url);
-          articles.push({
-            title: a.title.split(' - ')[0].trim(),
-            url: a.url,
-            source: a.source?.name || null,
-            publishedAt: a.publishedAt,
-          });
-        }
+        if (!a.title || !a.url || seen.has(a.url)) continue;
+        const titleLower = a.title.toLowerCase();
+        if (!TRAVEL_KEYWORDS.some(kw => titleLower.includes(kw))) continue;
+        seen.add(a.url);
+        articles.push({
+          title: a.title.split(' - ')[0].trim(),
+          url: a.url,
+          source: a.source?.name || null,
+          publishedAt: a.publishedAt,
+        });
       }
     }
 
