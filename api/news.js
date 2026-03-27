@@ -1,6 +1,5 @@
-const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                                                                                                                                                                                                                                                const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
-    'traveling with kids europe',
-    'theme park europe kids',
+const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                            
+  const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',                                                                                                                                                                              'traveling with kids europe',                                                                                                                                                                                     'theme park europe kids',
     'water park families europe',
     'kid-friendly cities europe',
     'family vacation europe 2026',
@@ -130,15 +129,18 @@ const CACHE_TTL_MS = 60 * 60 * 1000;                                            
     for (const batch of results) {
       for (const a of batch) {
         if (!a.title || !a.url || seen.has(a.url)) continue;
-        const titleLower = a.title.toLowerCase();
+        const title = a.title.split(' - ')[0].trim();
+        const titleLower = title.toLowerCase();
         if (BLOCKED_KEYWORDS.some(kw => titleLower.includes(kw))) continue;
         const hasFamily = FAMILY_KEYWORDS.some(kw => titleLower.includes(kw));
         const hasTravel = TRAVEL_KEYWORDS.some(kw => titleLower.includes(kw));
         const trustedSource = TRUSTED_SOURCES.some(s => (a.url || '').includes(s));
         if (!trustedSource && !(hasFamily && hasTravel)) continue;
+        const wordCount = title.trim().split(/\s+/).length;
+        if (wordCount > 10) continue;
         seen.add(a.url);
         articles.push({
-          title: a.title.split(' - ')[0].trim(),
+          title,
           url: a.url,
           source: a.source?.name || null,
           publishedAt: a.publishedAt,
