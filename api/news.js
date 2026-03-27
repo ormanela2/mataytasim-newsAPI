@@ -1,13 +1,6 @@
- const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                                                                                                                                                                                                                                                const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
-    'traveling with kids europe',
-    'theme park europe kids',
-    'water park families europe',
-    'kid-friendly cities europe',
-    'family vacation europe 2026',
-    'interactive museums kids europe',
-    'budget family travel europe',
-    'budapest with kids',
-    'outdoor activities kids europe',
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+  const QUERIES = [                                                                                                                                                                                                   'family travel europe kids',                                                                                                                                                                                      'theme park europe family',                                                                                                                                                                                       'family vacation europe 2026',
   ];
 
   const BLOCKED_KEYWORDS = [
