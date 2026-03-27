@@ -1,9 +1,6 @@
-const CACHE_TTL_MS = 60 * 60 * 1000;
-
-  const QUERIES = [
-    'family travel destinations europe',
-    'traveling with kids europe',
-    'theme park europe kids',
+const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                            
+  const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
+    'traveling with kids europe',                                                                                                                                                                                     'theme park europe kids',
     'water park families europe',
     'kid-friendly cities europe',
     'family vacation europe 2026',
@@ -13,16 +10,29 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
     'outdoor activities kids europe',
   ];
 
+  const BLOCKED_KEYWORDS = [
+    'cannabis', 'drug', 'war', 'oil', 'trump', 'politics', 'murder', 'crime',
+    'arrest', 'shooting', 'cancer', 'disease', 'lawsuit', 'court', 'prison',
+    'college fund', 'ivy league', 'stock', 'crypto', 'bitcoin', 'massage',
+    'bribery', 'corruption', 'military', 'weapons', 'bomb', 'terror',
+  ];
+
   const FAMILY_KEYWORDS = [
-    'family', 'kids', 'children', 'toddler', 'kid-friendly', 'family-friendly',
-    'families', 'parents', 'with kids', 'for kids',
+    'family', 'families', 'kids', 'with kids', 'for kids', 'kid-friendly',
+    'family-friendly', 'toddler', 'traveling with children',
   ];
 
   const TRAVEL_KEYWORDS = [
-    'travel', 'theme park', 'waterpark', 'water park', 'museum', 'vacation',
-    'holiday', 'resort', 'disney', 'legoland', 'attraction', 'adventure',
-    'trip', 'tour', 'destination', 'cruise', 'playground', 'zoo', 'aquarium',
-    'amusement park', 'itinerary', 'getaway', 'road trip', 'accommodation',
+    'travel', 'theme park', 'waterpark', 'water park', 'vacation', 'holiday',
+    'resort', 'disney', 'legoland', 'attraction', 'trip', 'destination',
+    'cruise', 'zoo', 'aquarium', 'amusement park', 'getaway', 'road trip',
+  ];
+
+  const TRUSTED_SOURCES = [
+    'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
+    'lonelyplanet.com', 'cntraveler.com', 'afar.com', 'tripadvisor.com',
+    'familyvacationist.com', 'disneyfoodblog.com', 'insidethemagic.net',
+    'skift.com', 'holidaypirates.com',
   ];
 
   let memCache = null;
@@ -62,10 +72,11 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
       for (const a of batch) {
         if (!a.title || !a.url || seen.has(a.url)) continue;
         const titleLower = a.title.toLowerCase();
+        if (BLOCKED_KEYWORDS.some(kw => titleLower.includes(kw))) continue;
         const hasFamily = FAMILY_KEYWORDS.some(kw => titleLower.includes(kw));
         const hasTravel = TRAVEL_KEYWORDS.some(kw => titleLower.includes(kw));
-        if (!hasFamily && !hasTravel) continue;
-        if (!hasFamily && !titleLower.includes('travel')) continue;
+        const trustedSource = TRUSTED_SOURCES.some(s => (a.url || '').includes(s));
+        if (!trustedSource && !(hasFamily && hasTravel)) continue;
         seen.add(a.url);
         articles.push({
           title: a.title.split(' - ')[0].trim(),
