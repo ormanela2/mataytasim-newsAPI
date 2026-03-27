@@ -1,5 +1,6 @@
-const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                            
-  const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',                                                                                                                                                                              'traveling with kids europe',                                                                                                                                                                                     'theme park europe kids',
+ const CACHE_TTL_MS = 60 * 60 * 1000;                                                                                                                                                                                                                                                                                                                                                                                                const QUERIES = [                                                                                                                                                                                                   'family travel destinations europe',
+    'traveling with kids europe',
+    'theme park europe kids',
     'water park families europe',
     'kid-friendly cities europe',
     'family vacation europe 2026',
@@ -125,7 +126,7 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
     const results = [...keywordResults, domainResults];
 
     const seen = new Set();
-    const articles = [];
+    let articles = [];
     for (const batch of results) {
       for (const a of batch) {
         if (!a.title || !a.url || seen.has(a.url)) continue;
@@ -145,6 +146,36 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
           source: a.source?.name || null,
           publishedAt: a.publishedAt,
         });
+      }
+    }
+
+    // Translate titles to Hebrew using Google Translate
+    const translateKey = process.env.GOOGLE_TRANSLATE_KEY;
+    if (translateKey && articles.length) {
+      try {
+        const res = await fetch(
+          `https://translation.googleapis.com/language/translate/v2?key=${translateKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              q: articles.map(a => a.title),
+              source: 'en',
+              target: 'he',
+              format: 'text',
+            }),
+          }
+        );
+        const data = await res.json();
+        const translations = data?.data?.translations;
+        if (translations) {
+          articles = articles.map((a, i) => ({
+            ...a,
+            title: translations[i]?.translatedText || a.title,
+          }));
+        }
+      } catch (e) {
+        console.error('Translation error:', e.message);
       }
     }
 
