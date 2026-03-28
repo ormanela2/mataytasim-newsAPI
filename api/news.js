@@ -1,13 +1,5 @@
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
-
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                             
   const QUERIES = [                                                                                                                                                                                                   'family travel europe kids',                                                                                                                                                                                      'theme park europe family',                                                                                                                                                                                       'family vacation europe 2026',
-  ];
-
-  const BLOCKED_KEYWORDS = [
-    'cannabis', 'drug', 'war', 'oil', 'trump', 'politics', 'murder', 'crime',
-    'arrest', 'shooting', 'cancer', 'disease', 'lawsuit', 'court', 'prison',
-    'college fund', 'ivy league', 'stock', 'crypto', 'bitcoin', 'massage',
-    'bribery', 'corruption', 'military', 'weapons', 'bomb', 'terror',
   ];
 
   const FAMILY_KEYWORDS = [
@@ -21,6 +13,56 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     'cruise', 'zoo', 'aquarium', 'amusement park', 'getaway', 'road trip',
   ];
 
+  const EUROPE_KEYWORDS = [
+    'europe', 'european',
+    // countries
+    'france', 'french', 'spain', 'spanish', 'italy', 'italian', 'germany', 'german',
+    'greece', 'greek', 'portugal', 'portuguese', 'netherlands', 'dutch', 'belgium', 'belgian',
+    'austria', 'austrian', 'switzerland', 'swiss', 'czech', 'poland', 'polish',
+    'hungary', 'hungarian', 'croatia', 'croatian', 'denmark', 'danish', 'sweden', 'swedish',
+    'norway', 'norwegian', 'finland', 'finnish', 'ireland', 'irish', 'scotland', 'scottish',
+    'slovakia', 'slovenia', 'romania', 'bulgaria', 'montenegro', 'albania', 'serbia',
+    'turkey', 'turkish', 'malta', 'cyprus', 'luxembourg', 'estonia', 'latvia', 'lithuania',
+    'uk', 'england', 'british', 'wales', 'welsh',
+    // cities
+    'paris', 'london', 'rome', 'barcelona', 'madrid', 'amsterdam', 'berlin', 'vienna',
+    'prague', 'budapest', 'athens', 'lisbon', 'brussels', 'milan', 'florence', 'venice',
+    'copenhagen', 'stockholm', 'oslo', 'dublin', 'edinburgh', 'munich', 'zurich',
+    'porto', 'seville', 'naples', 'sicily', 'dubrovnik', 'split', 'warsaw', 'krakow',
+    'tallinn', 'riga', 'vilnius', 'reykjavik', 'valletta', 'nicosia', 'tirana',
+    'santorini', 'mykonos', 'amalfi', 'tuscany', 'provence', 'andalusia', 'costa brava',
+    'costa del sol', 'algarve', 'lake como', 'lake garda', 'bavarian', 'bavaria',
+    // theme parks in europe
+    'disneyland paris', 'disney paris', 'efteling', 'phantasialand', 'europa-park', 'europa park',
+    'tivoli', 'portaventura', 'gardaland', 'legoland windsor', 'alton towers', 'thorpe park',
+    // regions
+    'mediterranean', 'scandinavia', 'scandinavian', 'alps', 'balkans', 'iberian',
+    'adriatic', 'aegean', 'canary islands', 'balearic', 'riviera',
+  ];
+
+  const BLOCKED_KEYWORDS = [
+    // drugs & health
+    'cannabis', 'drug', 'cancer', 'disease', 'overdose',
+    // politics & government
+    'trump', 'biden', 'putin', 'zelensky', 'politics', 'political', 'election',
+    'vote', 'democrat', 'republican', 'senator', 'congress', 'parliament',
+    'white house', 'kremlin', 'sanction', 'diplomat', 'diplomacy', 'coup',
+    'protest', 'riot', 'activist',
+    // military & weapons
+    'war', 'army', 'military', 'soldier', 'troops', 'weapon', 'weapons',
+    'missile', 'nuclear', 'bomb', 'airstrike', 'air strike', 'warplane',
+    'artillery', 'combat', 'battlefield', 'invasion', 'ceasefire', 'nato',
+    'militia', 'rebel', 'gunfire', 'sniper', 'ammunition', 'hostage', 'siege',
+    'assassination', 'genocide',
+    // crime & legal
+    'murder', 'crime', 'arrest', 'shooting', 'prison', 'lawsuit', 'court',
+    'bribery', 'corruption', 'fraud', 'trafficking',
+    // finance
+    'oil', 'stock', 'crypto', 'bitcoin', 'college fund', 'ivy league',
+    // misc
+    'massage', 'terror', 'terrorist',
+  ];
+
   const TRUSTED_SOURCES = [
     'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
     'lonelyplanet.com', 'cntraveler.com', 'afar.com', 'tripadvisor.com',
@@ -31,24 +73,9 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     'theguardian.com/travel', 'telegraph.co.uk/travel', 'bbc.com/travel',
     'independent.co.uk/travel', 'nationalgeographic.com/travel',
     'familytraveler.com', 'euroweeklynews.com', 'planetware.com',
-    'matadornetwork.com', 'smartertravel.com', 'travelpulse.com',
-    'travelweekly.com', 'wanderlust.co.uk', 'blooloop.com',
-    'amusementtoday.com', 'attractionsmanagement.com', 'eturbonews.com',
-    'familytravelmagazine.com', 'tripswithkids.com', 'breakingtravelnews.com',
-    'travelweekly.co.uk', 'travelmole.com', 'ttgmedia.com',
-    'adventurefamilytraveler.com', 'europeantraveller.com',
-    'hungarytoday.hu', 'dailynewshungary.com', 'xpatloop.com',
-    'spectator.sme.sk', 'travelingslovakia.com', 'slovakia.travel',
-    'praguemonitor.com', 'czech-tourism.com', 'polandin.com',
-    'thenews.pl', 'poland.travel', 'austria.info', 'thelocal.at',
-    'romaniajournal.ro', 'romaniatourism.com',
-    'greeka.com', 'visitgreece.gr', 'greeknewsagenda.gr',
-    'europeanbestdestinations.com', 'euronews.com/travel',
-    'iamexpat.com', 'thelocal.com',
-    'ynet.co.il', 'walla.co.il', 'mako.co.il', 'haaretz.com',
-    'timesofisrael.com', 'jpost.com', 'israelhayom.com',
-    'israeltravels.co.il', 'kaveret.co.il',
   ];
+
+  let memCache = null;
 
   const DOMAINS = [
     'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
@@ -60,17 +87,16 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     'timesofisrael.com', 'jpost.com', 'europeanbestdestinations.com',
   ].join(',');
 
-  let memCache = null;
-
   async function fetchFresh(apiKey, debug) {
     const rawResults = {};
 
+    // Query 1: keyword queries
     const keywordResults = await Promise.all(QUERIES.map(async (q) => {
       const params = new URLSearchParams({
         q,
         language: 'en',
         sortBy: 'publishedAt',
-        pageSize: '10',
+        pageSize: '30',
         apiKey,
       });
       try {
@@ -92,10 +118,11 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
       }
     }));
 
+    // Query 2: directly from trusted travel domains
     let domainResults = [];
     try {
       const params = new URLSearchParams({
-        q: 'travel family kids',
+        q: 'travel family kids europe',
         domains: DOMAINS,
         language: 'en',
         sortBy: 'publishedAt',
@@ -123,18 +150,18 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     for (const batch of results) {
       for (const a of batch) {
         if (!a.title || !a.url || seen.has(a.url)) continue;
-        const title = a.title.split(' - ')[0].trim();
-        const titleLower = title.toLowerCase();
+        const titleLower = a.title.toLowerCase();
         if (BLOCKED_KEYWORDS.some(kw => titleLower.includes(kw))) continue;
         const hasFamily = FAMILY_KEYWORDS.some(kw => titleLower.includes(kw));
         const hasTravel = TRAVEL_KEYWORDS.some(kw => titleLower.includes(kw));
         const trustedSource = TRUSTED_SOURCES.some(s => (a.url || '').includes(s));
         if (!trustedSource && !(hasFamily && hasTravel)) continue;
-        const wordCount = title.trim().split(/\s+/).length;
-        if (wordCount > 10) continue;
+        const hasEurope = EUROPE_KEYWORDS.some(kw => titleLower.includes(kw));
+        const euroSource = ['holidaypirates', 'euroweeklynews', 'europeanbestdestinations', 'wanderlust'].some(s => (a.url || '').includes(s));
+        if (!hasEurope && !euroSource) continue;
         seen.add(a.url);
         articles.push({
-          title,
+          title: a.title.split(' - ')[0].trim(),
           url: a.url,
           source: a.source?.name || null,
           publishedAt: a.publishedAt,
@@ -142,7 +169,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
       }
     }
 
-    // Translate titles to Hebrew using Google Translate
+    // Translate titles to Hebrew
     const translateKey = process.env.GOOGLE_TRANSLATE_KEY;
     if (translateKey && articles.length) {
       try {
