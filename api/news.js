@@ -95,6 +95,18 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     'oil', 'stock', 'crypto', 'bitcoin', 'college fund', 'ivy league',
     // misc
     'massage', 'terror', 'terrorist',
+    // commercial / pricing — hotels
+    'hotel deal', 'hotel deals', 'hotel discount', 'hotel offer', 'hotel sale',
+    'hotel price', 'hotel prices', 'hotel rate', 'hotel rates', 'room rate', 'room rates',
+    'per night', 'a night', 'nightly rate', 'book a hotel', 'hotel booking',
+    'cheapest hotel', 'cheap hotel', 'budget hotel', 'best hotel price',
+    // commercial / pricing — flights
+    'flight deal', 'flight deals', 'cheap flight', 'cheap flights', 'cheapest flight',
+    'flight price', 'flight prices', 'flight cost', 'airfare', 'fare deal',
+    'ticket price', 'ticket prices', 'lowest fare', 'price drop', 'flight sale',
+    // generic promotional
+    '% off', 'flash sale', 'book now', 'limited time', 'save on', 'best price',
+    'lowest price', 'price alert', 'price comparison',
   ];
 
   const TRUSTED_SOURCES = [
