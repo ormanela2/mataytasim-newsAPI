@@ -1,5 +1,39 @@
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                             
-  const QUERIES = [                                                                                                                                                                                                   'family travel europe kids',                                                                                                                                                                                      'theme park europe family',                                                                                                                                                                                       'family vacation europe 2026',
+  const DESTINATIONS = [                                                                                                                                                                                              'Slovakia', 'Czech Republic', 'England', 'Poland', 'Austria',                                                                                                                                                     'Paris', 'Spain', 'Greece', 'Hungary', 'Romania', 'Netherlands', 'Germany',                                                                                                                                     ];
+
+  const FAMILY_QUERY_KEYWORDS = [
+    // general family travel
+    'family travel',
+    'with kids',
+    'family vacation',
+    'theme park',
+    'attractions for families',
+    // new openings
+    'new attraction opening 2026',
+    'newly opened museum',
+    'upcoming theme park',
+    'new interactive exhibit kids',
+    'new family hotel resort',
+    // seasonality
+    'water park summer season',
+    'amusement park opening dates',
+    'ski resort opening',
+    'theme park seasonal hours',
+    // insider knowledge
+    'top-rated family activities',
+    'hidden gems families',
+    'kid-friendly tours',
+    'affordable family attractions',
+    'best time to visit family',
+  ];
+
+  const GENERAL_QUERIES = [
+    'flight delays europe travel families',
+    'airline strike europe travel',
+    'train service disruptions europe',
+    'new family entertainment center europe 2026',
+    'theme park new opening europe 2026',
+    'public holiday travel europe families',
   ];
 
   const FAMILY_KEYWORDS = [
@@ -49,13 +83,13 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     'white house', 'kremlin', 'sanction', 'diplomat', 'diplomacy', 'coup',
     'protest', 'riot', 'activist',
     // military & weapons
-    'war', 'army', 'military', 'soldier', 'troops', 'weapon', 'weapons',
-    'missile', 'nuclear', 'bomb', 'airstrike', 'air strike', 'warplane',
-    'artillery', 'combat', 'battlefield', 'invasion', 'ceasefire', 'nato',
-    'militia', 'rebel', 'gunfire', 'sniper', 'ammunition', 'hostage', 'siege',
+    'war', 'military', 'soldier', 'troops', 'weapon', 'weapons',
+    'missile', 'nuclear', 'airstrike', 'air strike', 'warplane',
+    'artillery', 'battlefield', 'invasion', 'ceasefire', 'nato',
+    'militia', 'gunfire', 'sniper', 'ammunition', 'hostage', 'siege',
     'assassination', 'genocide',
     // crime & legal
-    'murder', 'crime', 'arrest', 'shooting', 'prison', 'lawsuit', 'court',
+    'murder', 'crime', 'arrest', 'shooting', 'prison', 'lawsuit',
     'bribery', 'corruption', 'fraud', 'trafficking',
     // finance
     'oil', 'stock', 'crypto', 'bitcoin', 'college fund', 'ivy league',
@@ -64,39 +98,53 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
   ];
 
   const TRUSTED_SOURCES = [
-    'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
-    'lonelyplanet.com', 'cntraveler.com', 'afar.com', 'tripadvisor.com',
-    'familyvacationist.com', 'disneyfoodblog.com', 'insidethemagic.net',
-    'skift.com', 'holidaypirates.com', 'trekaroo.com', 'travelingmom.com',
-    'mommypoppins.com', 'thetravel.com', 'frommers.com', 'fodors.com',
+    'travelandleisure.com', 'lonelyplanet.com', 'cntraveler.com', 'afar.com',
+    'skift.com', 'holidaypirates.com', 'thetravel.com', 'frommers.com', 'fodors.com',
     'roughguides.com', 'worldtravelguide.net', 'timeout.com',
     'theguardian.com/travel', 'telegraph.co.uk/travel', 'bbc.com/travel',
     'independent.co.uk/travel', 'nationalgeographic.com/travel',
     'familytraveler.com', 'euroweeklynews.com', 'planetware.com',
+    // European country-specific
+    'thelocal.at', 'dutchnews.nl', 'iamsterdam.com', 'dutchreview.com',
+    'notesfrompoland.com', 'thefirstnews.com', 'inyourpocket.com',
+    'hungarytoday.hu', 'dailynewshungary.com', 'welovebudapest.com',
+    'romania-insider.com', 'business-review.eu',
+    'europeanbestdestinations.com', 'wanderlust.co.uk', 'blooloop.com',
+    'amusementtoday.com', 'attractionsmanagement.com',
   ];
 
   let memCache = null;
 
   const DOMAINS = [
-    'themeparkinsider.com', 'thepointsguy.com', 'travelandleisure.com',
-    'lonelyplanet.com', 'cntraveler.com', 'afar.com', 'insidethemagic.net',
-    'disneyfoodblog.com', 'skift.com', 'holidaypirates.com', 'thetravel.com',
-    'matadornetwork.com', 'smartertravel.com', 'timeout.com', 'fodors.com',
-    'frommers.com', 'roughguides.com', 'wanderlust.co.uk', 'blooloop.com',
-    'amusementtoday.com', 'attractionsmanagement.com', 'euroweeklynews.com',
-    'timesofisrael.com', 'jpost.com', 'europeanbestdestinations.com',
+    // global travel
+    'travelandleisure.com', 'lonelyplanet.com', 'cntraveler.com', 'afar.com',
+    'skift.com', 'thetravel.com', 'fodors.com', 'frommers.com',
+    'roughguides.com', 'timeout.com', 'matadornetwork.com',
+    // European travel & theme parks
+    'holidaypirates.com', 'euroweeklynews.com', 'europeanbestdestinations.com',
+    'wanderlust.co.uk', 'blooloop.com', 'amusementtoday.com', 'attractionsmanagement.com',
+    // country-specific Europe
+    'thelocal.at', 'dutchnews.nl', 'iamsterdam.com', 'dutchreview.com',
+    'notesfrompoland.com', 'thefirstnews.com', 'inyourpocket.com',
+    'hungarytoday.hu', 'dailynewshungary.com', 'welovebudapest.com',
+    'romania-insider.com', 'business-review.eu',
   ].join(',');
 
   async function fetchFresh(apiKey, debug) {
     const rawResults = {};
 
-    // Query 1: keyword queries
-    const keywordResults = await Promise.all(QUERIES.map(async (q) => {
+    // Query 1: destination × random family keyword queries
+    const queries = DESTINATIONS.map(dest => {
+      const kw = FAMILY_QUERY_KEYWORDS[Math.floor(Math.random() * FAMILY_QUERY_KEYWORDS.length)];
+      return `${dest} ${kw}`;
+    });
+
+    const keywordResults = await Promise.all(queries.map(async (q) => {
       const params = new URLSearchParams({
         q,
         language: 'en',
         sortBy: 'publishedAt',
-        pageSize: '30',
+        pageSize: '10',
         apiKey,
       });
       try {
@@ -118,11 +166,39 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
       }
     }));
 
-    // Query 2: directly from trusted travel domains
+    // Query 2: general Europe-wide queries
+    const generalResults = await Promise.all(GENERAL_QUERIES.map(async (q) => {
+      const params = new URLSearchParams({
+        q,
+        language: 'en',
+        sortBy: 'publishedAt',
+        pageSize: '10',
+        apiKey,
+      });
+      try {
+        const res = await fetch(`https://newsapi.org/v2/everything?${params}`);
+        const data = await res.json();
+        if (debug) rawResults[q] = {
+          status: res.status,
+          totalResults: data.totalResults,
+          articleCount: (data.articles || []).length,
+          sample: data.articles?.[0] || null,
+          apiStatus: data.status,
+          message: data.message,
+        };
+        if (!res.ok) return [];
+        return data.articles || [];
+      } catch (e) {
+        if (debug) rawResults[q] = { error: e.message };
+        return [];
+      }
+    }));
+
+    // Query 3: directly from trusted travel domains
     let domainResults = [];
     try {
       const params = new URLSearchParams({
-        q: 'travel family kids europe',
+        q: 'travel family kids',
         domains: DOMAINS,
         language: 'en',
         sortBy: 'publishedAt',
@@ -143,7 +219,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
       if (debug) rawResults['_domains'] = { error: e.message };
     }
 
-    const results = [...keywordResults, domainResults];
+    const results = [...keywordResults, ...generalResults, domainResults];
 
     const seen = new Set();
     let articles = [];
