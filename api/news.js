@@ -241,21 +241,26 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
           url: a.url,
           source: a.source?.name || null,
           publishedAt: a.publishedAt,
+          description: a.description || null,
         });
       }
     }
 
-    // Translate titles to Hebrew
+    // Translate titles and descriptions to Hebrew
     const translateKey = process.env.GOOGLE_TRANSLATE_KEY;
     if (translateKey && articles.length) {
       try {
+        const textsToTranslate = [
+          ...articles.map(a => a.title),
+          ...articles.map(a => a.description || ''),
+        ];
         const res = await fetch(
           `https://translation.googleapis.com/language/translate/v2?key=${translateKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              q: articles.map(a => a.title),
+              q: textsToTranslate,
               source: 'en',
               target: 'he',
               format: 'text',
@@ -265,9 +270,11 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
         const data = await res.json();
         const translations = data?.data?.translations;
         if (translations) {
+          const n = articles.length;
           articles = articles.map((a, i) => ({
             ...a,
             title: translations[i]?.translatedText || a.title,
+            description: translations[n + i]?.translatedText || a.description,
           }));
         }
       } catch (e) {
