@@ -1,4 +1,4 @@
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                             
+ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                             
   const DESTINATIONS = [                                                                                                                                                                                              'Slovakia', 'Czech Republic', 'England', 'Poland', 'Austria',                                                                                                                                                     'Paris', 'Spain', 'Greece', 'Hungary', 'Romania', 'Netherlands', 'Germany',                                                                                                                                     ];
 
   const FAMILY_QUERY_KEYWORDS = [
@@ -110,33 +110,46 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
   ];
 
   const TRUSTED_SOURCES = [
+    // global editorial travel
     'travelandleisure.com', 'lonelyplanet.com', 'cntraveler.com', 'afar.com',
-    'skift.com', 'holidaypirates.com', 'thetravel.com', 'frommers.com', 'fodors.com',
-    'roughguides.com', 'worldtravelguide.net', 'timeout.com',
+    'thetravel.com', 'frommers.com', 'fodors.com', 'roughguides.com',
+    'worldtravelguide.net', 'timeout.com', 'matadornetwork.com',
+    'condenasttraveller.com', 'thetravelmagazine.net', 'coolplaces.co.uk',
+    // editorial UK/European press — travel sections
     'theguardian.com/travel', 'telegraph.co.uk/travel', 'bbc.com/travel',
     'independent.co.uk/travel', 'nationalgeographic.com/travel',
-    'familytraveler.com', 'euroweeklynews.com', 'planetware.com',
-    // European country-specific
-    'thelocal.at', 'dutchnews.nl', 'iamsterdam.com', 'dutchreview.com',
+    'euronews.com', 'expatica.com',
+    // family travel editorial
+    'familytraveler.com', 'planetware.com', 'wanderlust.co.uk',
+    // theme park & attractions editorial
+    'blooloop.com', 'amusementtoday.com', 'attractionsmanagement.com',
+    // European editorial news
+    'euroweeklynews.com', 'europeanbestdestinations.com',
+    'thelocal.de', 'thelocal.fr', 'thelocal.es', 'thelocal.it',
+    'thelocal.at', 'thelocal.se', 'thelocal.ch',
+    'dutchnews.nl', 'iamsterdam.com', 'dutchreview.com',
     'notesfrompoland.com', 'thefirstnews.com', 'inyourpocket.com',
     'hungarytoday.hu', 'dailynewshungary.com', 'welovebudapest.com',
     'romania-insider.com', 'business-review.eu',
-    'europeanbestdestinations.com', 'wanderlust.co.uk', 'blooloop.com',
-    'amusementtoday.com', 'attractionsmanagement.com',
   ];
 
   let memCache = null;
 
   const DOMAINS = [
-    // global travel
+    // global editorial travel
     'travelandleisure.com', 'lonelyplanet.com', 'cntraveler.com', 'afar.com',
-    'skift.com', 'thetravel.com', 'fodors.com', 'frommers.com',
-    'roughguides.com', 'timeout.com', 'matadornetwork.com',
-    // European travel & theme parks
-    'holidaypirates.com', 'euroweeklynews.com', 'europeanbestdestinations.com',
-    'wanderlust.co.uk', 'blooloop.com', 'amusementtoday.com', 'attractionsmanagement.com',
+    'thetravel.com', 'fodors.com', 'frommers.com', 'roughguides.com',
+    'timeout.com', 'matadornetwork.com', 'condenasttraveller.com',
+    'thetravelmagazine.net', 'coolplaces.co.uk',
+    // European editorial travel & attractions
+    'euronews.com', 'expatica.com', 'euroweeklynews.com',
+    'europeanbestdestinations.com', 'wanderlust.co.uk',
+    'blooloop.com', 'amusementtoday.com', 'attractionsmanagement.com',
+    // The Local network (English news from across Europe)
+    'thelocal.de', 'thelocal.fr', 'thelocal.es', 'thelocal.it',
+    'thelocal.at', 'thelocal.se', 'thelocal.ch',
     // country-specific Europe
-    'thelocal.at', 'dutchnews.nl', 'iamsterdam.com', 'dutchreview.com',
+    'dutchnews.nl', 'iamsterdam.com', 'dutchreview.com',
     'notesfrompoland.com', 'thefirstnews.com', 'inyourpocket.com',
     'hungarytoday.hu', 'dailynewshungary.com', 'welovebudapest.com',
     'romania-insider.com', 'business-review.eu',
@@ -245,7 +258,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
         const trustedSource = TRUSTED_SOURCES.some(s => (a.url || '').includes(s));
         if (!trustedSource && !(hasFamily && hasTravel)) continue;
         const hasEurope = EUROPE_KEYWORDS.some(kw => titleLower.includes(kw));
-        const euroSource = ['holidaypirates', 'euroweeklynews', 'europeanbestdestinations', 'wanderlust'].some(s => (a.url || '').includes(s));
+        const euroSource = ['euroweeklynews', 'europeanbestdestinations', 'wanderlust', 'thelocal.', 'expatica', 'euronews'].some(s => (a.url || '').includes(s));
         if (!hasEurope && !euroSource) continue;
         seen.add(a.url);
         articles.push({
