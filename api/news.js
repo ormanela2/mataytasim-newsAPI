@@ -12,44 +12,44 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
   // Query 2: specific topics using $or with keywordLoc precision (complex format, 1 token)
   const SPECIFIC_OR_KEYWORDS = [
     // Theme parks & attractions
-    { keyword: 'new attraction opening',        keywordLoc: 'title' },
-    { keyword: 'grand opening museum',          keywordLoc: 'title' },
-    { keyword: 'theme park season opening',     keywordLoc: 'title' },
-    { keyword: 'theme park expansion',          keywordLoc: 'title' },
-    { keyword: 'new roller coaster opening',    keywordLoc: 'body' },
-    { keyword: 'water park opening dates',      keywordLoc: 'body' },
-    { keyword: 'ski resort opening 2026',       keywordLoc: 'body' },
-    { keyword: 'interactive exhibit opening',   keywordLoc: 'body' },
+    { keyword: 'new attraction opening',         keywordLoc: 'title' },
+    { keyword: 'grand opening museum',           keywordLoc: 'title' },
+    { keyword: 'theme park season opening',      keywordLoc: 'title' },
+    { keyword: 'theme park expansion',           keywordLoc: 'title' },
+    { keyword: 'new roller coaster opening',     keywordLoc: 'body' },
+    { keyword: 'water park opening dates',       keywordLoc: 'body' },
+    { keyword: 'ski resort opening 2026',        keywordLoc: 'body' },
+    { keyword: 'interactive exhibit opening',    keywordLoc: 'body' },
     // Specific parks
-    { keyword: 'Efteling',                      keywordLoc: 'body' },
-    { keyword: 'Energylandia update',           keywordLoc: 'body' },
-    { keyword: 'Europa-Park new ride',          keywordLoc: 'title' },
-    { keyword: 'Disneyland Paris update',       keywordLoc: 'body' },
-    { keyword: 'Puy du Fou new show',           keywordLoc: 'body' },
-    { keyword: 'Legoland new attraction',       keywordLoc: 'title' },
-    { keyword: 'Prater Vienna news',            keywordLoc: 'body' },
+    { keyword: 'Efteling',                       keywordLoc: 'body' },
+    { keyword: 'Energylandia update',            keywordLoc: 'body' },
+    { keyword: 'Europa-Park new ride',           keywordLoc: 'title' },
+    { keyword: 'Disneyland Paris update',        keywordLoc: 'body' },
+    { keyword: 'Puy du Fou new show',            keywordLoc: 'body' },
+    { keyword: 'Legoland new attraction',        keywordLoc: 'title' },
+    { keyword: 'Prater Vienna news',             keywordLoc: 'body' },
     // Events & festivals
     { keyword: 'Christmas market opening dates', keywordLoc: 'title' },
-    { keyword: 'annual festival dates 2026',    keywordLoc: 'title' },
-    { keyword: 'carnival dates 2026',           keywordLoc: 'title' },
-    { keyword: 'summer season kickoff',         keywordLoc: 'title' },
+    { keyword: 'annual festival dates 2026',     keywordLoc: 'title' },
+    { keyword: 'carnival dates 2026',            keywordLoc: 'title' },
+    { keyword: 'summer season kickoff',          keywordLoc: 'title' },
     // Nature & outdoors
-    { keyword: 'observation deck opening',      keywordLoc: 'title' },
-    { keyword: 'new hiking trail',              keywordLoc: 'body' },
-    { keyword: 'scenic train route update',     keywordLoc: 'title' },
-    { keyword: 'wildlife park new animals',     keywordLoc: 'body' },
-    { keyword: 'national park visitor center',  keywordLoc: 'body' },
+    { keyword: 'observation deck opening',       keywordLoc: 'title' },
+    { keyword: 'new hiking trail',               keywordLoc: 'body' },
+    { keyword: 'scenic train route update',      keywordLoc: 'title' },
+    { keyword: 'wildlife park new animals',      keywordLoc: 'body' },
+    { keyword: 'national park visitor center',   keywordLoc: 'body' },
     // Logistics & travel info
-    { keyword: 'new tourist tax',               keywordLoc: 'title' },
-    { keyword: 'ETIAS travel authorization',    keywordLoc: 'body' },
+    { keyword: 'new tourist tax',                keywordLoc: 'title' },
+    { keyword: 'ETIAS travel authorization',     keywordLoc: 'body' },
     { keyword: 'public transport strike update', keywordLoc: 'title' },
-    { keyword: 'low emission zone changes',     keywordLoc: 'body' },
-    { keyword: 'free admission museums',        keywordLoc: 'body' },
-    { keyword: 'new airport terminal opening',  keywordLoc: 'title' },
+    { keyword: 'low emission zone changes',      keywordLoc: 'body' },
+    { keyword: 'free admission museums',         keywordLoc: 'body' },
+    { keyword: 'new airport terminal opening',   keywordLoc: 'title' },
     // Flights relevant to Israelis
-    { keyword: 'direct flights to Israel',      keywordLoc: 'body' },
-    { keyword: 'new flight route Israel',       keywordLoc: 'body' },
-    { keyword: 'low cost carrier expansion',    keywordLoc: 'title' },
+    { keyword: 'direct flights to Israel',       keywordLoc: 'body' },
+    { keyword: 'new flight route Israel',        keywordLoc: 'body' },
+    { keyword: 'low cost carrier expansion',     keywordLoc: 'title' },
   ];
 
   // RSS feeds — confirmed working from monitor
@@ -73,7 +73,6 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     'copenhagen', 'stockholm', 'oslo', 'dublin', 'edinburgh', 'munich', 'zurich',
     'santorini', 'mykonos', 'tuscany', 'provence', 'bavarian', 'bavaria',
     'mediterranean', 'scandinavia', 'scandinavian', 'alps', 'adriatic', 'aegean',
-    // parks with no country name in title
     'disneyland paris', 'disney paris', 'efteling', 'phantasialand', 'europa-park', 'europa park',
     'tivoli', 'portaventura', 'gardaland', 'legoland windsor', 'alton towers', 'thorpe park',
     'parc asterix', 'puy du fou', 'walibi', 'heide park', 'movie park germany',
@@ -117,6 +116,12 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     'lowest price', 'price alert', 'price comparison',
     // US locations that could be false-positives
     'new england', 'new ireland',
+    // sports
+    'football', 'soccer', 'tennis', 'golf', 'rugby', 'cricket', 'basketball', 'handball',
+    'formula 1', 'formula one', 'grand prix', 'wimbledon', 'champions league',
+    'premier league', 'bundesliga', 'serie a', 'la liga', 'ligue 1',
+    'midfielder', 'striker', 'goalkeeper', 'transfer window',
+    'olympic games', 'olympic torch', 'world cup final', 'euro 2026',
   ];
 
   let memCache = null;
@@ -303,7 +308,6 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
       const sourceName = a.source?.title || a.source?.name || 'Unknown';
       monitor.bySource[sourceName] = (monitor.bySource[sourceName] || 0) + 1;
 
-      // description: use body (newsapi.ai) or RSS description
       const description = a.body
         ? a.body.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 500)
         : (a.description || null);
@@ -321,7 +325,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     // Sort by date, newest first
     articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
-    // ── Translate ─────────────────────────────────────────────
+    // ── Translate to Hebrew ───────────────────────────────────
     const translateKey = process.env.GOOGLE_TRANSLATE_KEY;
     if (translateKey && articles.length) {
       try {
