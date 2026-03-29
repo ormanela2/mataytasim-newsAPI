@@ -1,55 +1,20 @@
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                             
-  const NEWSAPI_AI_ENDPOINT = 'https://eventregistry.org/api/v1/article/getArticles';                                                                                                                               const EUROPE_LOCATION_URI = 'http://en.wikipedia.org/wiki/Europe';                                                                                                                                                                                                                                                                                                                                                                  // 2 queries per refresh = 2 tokens. At 4 refreshes/day = 8 tokens/day.
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                                                                                                                                                                                                                                                 const NEWSAPI_AI_ENDPOINT = 'https://eventregistry.org/api/v1/article/getArticles';                                                                                                                               const EUROPE_LOCATION_URI = 'http://en.wikipedia.org/wiki/Europe';                                                                                                                                              
+  // 2 queries per refresh = 2 tokens. At 4 refreshes/day = 8 tokens/day.
   // 2000 free tokens lasts ~250 days.
+  // NOTE: locationUri must be top-level — inside $query it is ignored by the API.
 
-  // Query 1: broad family travel catch-all (simple format)
-  const BROAD_QUERY = {
-    name: 'family-travel-broad',
-    keyword: 'family travel OR with kids OR family vacation OR kid-friendly OR traveling with children OR family holiday',
-    count: 50,
-  };
-
-  // Query 2: specific topics using $or with keywordLoc precision (complex format, 1 token)
-  const SPECIFIC_OR_KEYWORDS = [
-    // Theme parks & attractions
-    { keyword: 'new attraction opening',         keywordLoc: 'title' },
-    { keyword: 'grand opening museum',           keywordLoc: 'title' },
-    { keyword: 'theme park season opening',      keywordLoc: 'title' },
-    { keyword: 'theme park expansion',           keywordLoc: 'title' },
-    { keyword: 'new roller coaster opening',     keywordLoc: 'body' },
-    { keyword: 'water park opening dates',       keywordLoc: 'body' },
-    { keyword: 'ski resort opening 2026',        keywordLoc: 'body' },
-    { keyword: 'interactive exhibit opening',    keywordLoc: 'body' },
-    // Specific parks
-    { keyword: 'Efteling',                       keywordLoc: 'body' },
-    { keyword: 'Energylandia update',            keywordLoc: 'body' },
-    { keyword: 'Europa-Park new ride',           keywordLoc: 'title' },
-    { keyword: 'Disneyland Paris update',        keywordLoc: 'body' },
-    { keyword: 'Puy du Fou new show',            keywordLoc: 'body' },
-    { keyword: 'Legoland new attraction',        keywordLoc: 'title' },
-    { keyword: 'Prater Vienna news',             keywordLoc: 'body' },
-    // Events & festivals
-    { keyword: 'Christmas market opening dates', keywordLoc: 'title' },
-    { keyword: 'annual festival dates 2026',     keywordLoc: 'title' },
-    { keyword: 'carnival dates 2026',            keywordLoc: 'title' },
-    { keyword: 'summer season kickoff',          keywordLoc: 'title' },
-    // Nature & outdoors
-    { keyword: 'observation deck opening',       keywordLoc: 'title' },
-    { keyword: 'new hiking trail',               keywordLoc: 'body' },
-    { keyword: 'scenic train route update',      keywordLoc: 'title' },
-    { keyword: 'wildlife park new animals',      keywordLoc: 'body' },
-    { keyword: 'national park visitor center',   keywordLoc: 'body' },
-    // Logistics & travel info
-    { keyword: 'new tourist tax',                keywordLoc: 'title' },
-    { keyword: 'ETIAS travel authorization',     keywordLoc: 'body' },
-    { keyword: 'public transport strike update', keywordLoc: 'title' },
-    { keyword: 'low emission zone changes',      keywordLoc: 'body' },
-    { keyword: 'free admission museums',         keywordLoc: 'body' },
-    { keyword: 'new airport terminal opening',   keywordLoc: 'title' },
-    // Flights relevant to Israelis
-    { keyword: 'direct flights to Israel',       keywordLoc: 'body' },
-    { keyword: 'new flight route Israel',        keywordLoc: 'body' },
-    { keyword: 'low cost carrier expansion',     keywordLoc: 'title' },
+  const NEWS_QUERIES = [
+    {
+      name: 'family-travel',
+      keyword: 'family travel OR with kids OR family vacation OR kid-friendly OR traveling with children OR family holiday OR family activities',
+      count: 50,
+    },
+    {
+      name: 'attractions-events',
+      keyword: 'Efteling OR Europa-Park OR "Disneyland Paris" OR Legoland OR Gardaland OR PortAventura OR "Alton Towers" OR "Thorpe Park" OR Energylandia OR Tivoli OR theme park opening OR water park opening OR
+   roller coaster opening OR "Christmas market" OR museum opening OR "tourist tax" OR ETIAS OR "direct flights to Israel" OR "new airport terminal"',
+      count: 100,
+    },
   ];
 
   // RSS feeds — confirmed working from monitor
@@ -58,7 +23,6 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     { url: 'https://www.amusementtoday.com/feed/', name: 'Amusement Today' },
   ];
 
-  // Used only for RSS article Europe check
   const EUROPE_KEYWORDS = [
     'europe', 'european',
     'france', 'french', 'spain', 'spanish', 'italy', 'italian', 'germany', 'german',
@@ -168,18 +132,17 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     const today = new Date().toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // ── Query 1: broad family travel (simple format) ─────────
-    const broadResults = await (async () => {
+    // ── NewsAPI.ai queries (simple format — locationUri at top level) ──
+    const apiResults = await Promise.all(NEWS_QUERIES.map(async ({ name, keyword, count }) => {
       const body = {
         action: 'getArticles',
-        keyword: BROAD_QUERY.keyword,
-        keywordSearchMode: 'phrase',
+        keyword,
         locationUri: EUROPE_LOCATION_URI,
         lang: 'eng',
         dateStart: thirtyDaysAgo,
         dateEnd: today,
         articlesPage: 1,
-        articlesCount: BROAD_QUERY.count,
+        articlesCount: count,
         articlesSortBy: 'date',
         articlesSortByAsc: false,
         articleBodyLen: 500,
@@ -195,53 +158,13 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
         });
         const data = await res.json();
         const results = data?.articles?.results || [];
-        monitor.queries[BROAD_QUERY.name] = { fetched: results.length, passed: 0, totalResults: data?.articles?.totalResults };
-        return results.map(a => ({ ...a, _sourceQuery: BROAD_QUERY.name }));
+        monitor.queries[name] = { fetched: results.length, passed: 0, totalResults: data?.articles?.totalResults };
+        return results.map(a => ({ ...a, _sourceQuery: name }));
       } catch (e) {
-        monitor.queries[BROAD_QUERY.name] = { fetched: 0, passed: 0, error: e.message };
+        monitor.queries[name] = { fetched: 0, passed: 0, error: e.message };
         return [];
       }
-    })();
-
-    // ── Query 2: specific topics via $or + keywordLoc ─────────
-    const specificResults = await (async () => {
-      const body = {
-        action: 'getArticles',
-        $query: {
-          $and: [
-            { $or: SPECIFIC_OR_KEYWORDS },
-            { locationUri: EUROPE_LOCATION_URI },
-          ],
-        },
-        lang: 'eng',
-        dateStart: thirtyDaysAgo,
-        dateEnd: today,
-        articlesPage: 1,
-        articlesCount: 100,
-        articlesSortBy: 'date',
-        articlesSortByAsc: false,
-        articleBodyLen: 500,
-        resultType: 'articles',
-        dataType: ['news', 'blog'],
-        apiKey,
-      };
-      try {
-        const res = await fetch(NEWSAPI_AI_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        const results = data?.articles?.results || [];
-        monitor.queries['specific-topics'] = { fetched: results.length, passed: 0, totalResults: data?.articles?.totalResults };
-        return results.map(a => ({ ...a, _sourceQuery: 'specific-topics' }));
-      } catch (e) {
-        monitor.queries['specific-topics'] = { fetched: 0, passed: 0, error: e.message };
-        return [];
-      }
-    })();
-
-    const apiResults = [broadResults, specificResults];
+    }));
 
     // ── RSS feeds ─────────────────────────────────────────────
     const rssResults = await Promise.all(RSS_FEEDS.map(async ({ url, name }) => {
@@ -283,14 +206,12 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
         continue;
       }
 
-      // RSS articles need a Europe keyword check (API results are already filtered by locationUri)
-      if (a._fromRSS) {
-        const descLower = (a.description || '').toLowerCase();
-        const hasEurope = EUROPE_KEYWORDS.some(kw => titleLower.includes(kw) || descLower.includes(kw));
-        if (!hasEurope) {
-          monitor.filter.noEurope++;
-          continue;
-        }
+      // Europe safety filter — applied to ALL articles (locationUri is not 100% reliable)
+      const descLower = (a.description || a.body || '').toLowerCase();
+      const hasEurope = EUROPE_KEYWORDS.some(kw => titleLower.includes(kw) || descLower.includes(kw));
+      if (!hasEurope) {
+        monitor.filter.noEurope++;
+        continue;
       }
 
       seen.add(rawUrl);
