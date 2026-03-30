@@ -1,26 +1,87 @@
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                                                                                                                                                                                                                                                 const NEWSAPI_AI_ENDPOINT = 'https://eventregistry.org/api/v1/article/getArticles';
-  const EUROPE_LOCATION_URI = 'http://en.wikipedia.org/wiki/Europe';                                                                                                                                              
-  // 3 queries per refresh = 3 tokens. At 4 refreshes/day = 12 tokens/day.                                                                                                                                          // 2000 free tokens lasts ~166 days.                                                                                                                                                                              // NOTE: locationUri must be top-level — inside $query it is ignored by the API.                                                                                                                                
+                                                                                                                                                                                                                    // 3 queries per refresh = 3 tokens. At 4 refreshes/day = 12 tokens/day.
+  // 2000 free tokens lasts ~166 days.                                                                                                                                                                              // Uses $query format: locationUri + conceptUri(Tourism) + $not(Crime/Politics/War)                                                                                                                                                                                                                                                                                                                                                 const COUNTRY_URIS = [
+    'http://en.wikipedia.org/wiki/Poland',
+    'http://en.wikipedia.org/wiki/Hungary',
+    'http://en.wikipedia.org/wiki/Austria',
+    'http://en.wikipedia.org/wiki/Romania',
+    'http://en.wikipedia.org/wiki/Slovakia',
+    'http://en.wikipedia.org/wiki/Slovenia',
+    'http://en.wikipedia.org/wiki/Germany',
+    'http://en.wikipedia.org/wiki/Netherlands',
+    'http://en.wikipedia.org/wiki/Italy',
+    'http://en.wikipedia.org/wiki/France',
+    'http://en.wikipedia.org/wiki/Spain',
+    'http://en.wikipedia.org/wiki/Greece',
+    'http://en.wikipedia.org/wiki/Portugal',
+    'http://en.wikipedia.org/wiki/Czech_Republic',
+    'http://en.wikipedia.org/wiki/Croatia',
+    'http://en.wikipedia.org/wiki/Belgium',
+    'http://en.wikipedia.org/wiki/Switzerland',
+    'http://en.wikipedia.org/wiki/Denmark',
+    'http://en.wikipedia.org/wiki/Sweden',
+    'http://en.wikipedia.org/wiki/Ireland',
+    'http://en.wikipedia.org/wiki/United_Kingdom',
+  ];
+
+  const TOURISM_CONCEPT_URI = 'http://en.wikipedia.org/wiki/Tourism';
+
+  const BLOCKED_CONCEPT_URIS = [
+    'http://en.wikipedia.org/wiki/Crime',
+    'http://en.wikipedia.org/wiki/Politics_of_Europe',
+    'http://en.wikipedia.org/wiki/War',
+    'http://en.wikipedia.org/wiki/Military',
+  ];
+
   const NEWS_QUERIES = [
     {
-      // Family travel & destinations
       name: 'family-travel',
-      keyword: 'family travel OR with kids OR family vacation OR kid-friendly OR traveling with children OR family holiday OR family activities OR family trip Europe',
+      keywords: [
+        { keyword: 'family travel', keywordLoc: 'title' },
+        { keyword: 'family vacation', keywordLoc: 'title' },
+        { keyword: 'family holiday', keywordLoc: 'title' },
+        { keyword: 'with kids', keywordLoc: 'title' },
+        { keyword: 'kid-friendly', keywordLoc: 'title' },
+        { keyword: 'family activities', keywordLoc: 'title' },
+        { keyword: 'traveling with children', keywordLoc: 'body' },
+      ],
       count: 50,
     },
     {
-      // Parks, attractions & events
       name: 'attractions-events',
-      keyword: 'Efteling OR Europa-Park OR "Disneyland Paris" OR Legoland OR Gardaland OR PortAventura OR "Alton Towers" OR "Thorpe Park" OR Energylandia OR Tivoli OR Phantasialand OR "Puy du Fou" OR "Parc
-  Asterix" OR Liseberg OR theme park opening OR water park opening OR new attraction OR roller coaster opening OR "Christmas market" OR festival Europe OR museum opening OR "free museum" OR "open air" OR
-  "summer season opens"',
+      keywords: [
+        { keyword: 'theme park', keywordLoc: 'title' },
+        { keyword: 'new attraction', keywordLoc: 'title' },
+        { keyword: 'water park opening', keywordLoc: 'title' },
+        { keyword: 'roller coaster', keywordLoc: 'title' },
+        { keyword: 'museum opening', keywordLoc: 'title' },
+        { keyword: 'summer season opens', keywordLoc: 'title' },
+        { keyword: 'Efteling', keywordLoc: 'body' },
+        { keyword: 'Disneyland Paris', keywordLoc: 'body' },
+        { keyword: 'Europa-Park', keywordLoc: 'body' },
+        { keyword: 'Legoland', keywordLoc: 'body' },
+        { keyword: 'Energylandia', keywordLoc: 'body' },
+        { keyword: 'Phantasialand', keywordLoc: 'body' },
+        { keyword: 'Alton Towers', keywordLoc: 'body' },
+        { keyword: 'Puy du Fou', keywordLoc: 'body' },
+        { keyword: 'Parc Asterix', keywordLoc: 'body' },
+      ],
       count: 80,
     },
     {
-      // Travel alerts: flights, strikes, taxes, logistics
       name: 'travel-alerts',
-      keyword: '"tourist tax" OR "city tax" tourism OR transport strike Europe OR airport strike OR "flight disruption" OR "new route" Israel OR "direct flight" Israel Europe OR "Ryanair" OR "Wizz Air" OR
-  "easyJet" Israel OR ETIAS OR "low emission zone" OR "airport delay" OR "rail strike" OR "new train" Europe OR "high speed rail" OR "border control" Europe OR "travel warning" Europe',
+      keywords: [
+        { keyword: 'tourist tax', keywordLoc: 'title' },
+        { keyword: 'airport strike', keywordLoc: 'title' },
+        { keyword: 'flight disruption', keywordLoc: 'title' },
+        { keyword: 'travel warning', keywordLoc: 'title' },
+        { keyword: 'ETIAS', keywordLoc: 'title' },
+        { keyword: 'rail strike', keywordLoc: 'title' },
+        { keyword: 'border control', keywordLoc: 'title' },
+        { keyword: 'low emission zone', keywordLoc: 'title' },
+        { keyword: 'new route Israel', keywordLoc: 'body' },
+        { keyword: 'direct flight Israel', keywordLoc: 'body' },
+      ],
       count: 70,
     },
   ];
@@ -153,12 +214,22 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                             
     const today = new Date().toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // ── NewsAPI.ai queries (simple format — locationUri at top level) ──
-    const apiResults = await Promise.all(NEWS_QUERIES.map(async ({ name, keyword, count }) => {
+    // ── NewsAPI.ai queries ($query format with concept + location filters) ──
+    const apiResults = await Promise.all(NEWS_QUERIES.map(async ({ name, keywords, count }) => {
       const body = {
         action: 'getArticles',
-        keyword,
-        locationUri: EUROPE_LOCATION_URI,
+        query: {
+          $query: {
+            $and: [
+              { locationUri: COUNTRY_URIS },
+              { conceptUri: TOURISM_CONCEPT_URI },
+              { $or: keywords },
+            ],
+            $not: {
+              conceptUri: BLOCKED_CONCEPT_URIS,
+            },
+          },
+        },
         lang: 'eng',
         dateStart: thirtyDaysAgo,
         dateEnd: today,
