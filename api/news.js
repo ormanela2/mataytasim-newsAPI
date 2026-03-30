@@ -212,21 +212,9 @@ async function fetchFresh(apiKey) {
     const name = q.name;
     const keywords = q.keywords;
     const count = q.count;
-    const queryObj = {
-      $query: {
-        $and: [
-          { locationUri: COUNTRY_URIS },
-          { conceptUri: TOURISM_CONCEPT_URI },
-          { $or: keywords },
-        ],
-        $not: {
-          conceptUri: BLOCKED_CONCEPT_URIS,
-        },
-      },
-    };
     const body = {
       action: 'getArticles',
-      query: JSON.stringify(queryObj),
+      keyword: keywords.map(function(k) { return k.keyword; }).join(' OR '),
       lang: 'eng',
       dateStart: thirtyDaysAgo,
       dateEnd: today,
