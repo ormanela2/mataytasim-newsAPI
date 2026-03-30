@@ -97,11 +97,11 @@ const RSS_FEEDS = [
   // Theme parks & attractions
   { url: 'https://www.blooloop.com/feed/', name: 'Blooloop' },
   { url: 'https://insidethemagic.net/feed/', name: 'Inside the Magic' },
-  { url: 'https://www.coasterforce.com/feed/', name: 'CoasterForce' },
+  { url: 'https://themeparktourist.com/feed/', name: 'Theme Park Tourist' },
   // General Europe travel
   { url: 'https://www.theguardian.com/travel/rss', name: 'Guardian Travel' },
-  { url: 'https://www.wanderlust.co.uk/feed/', name: 'Wanderlust' },
-  { url: 'https://www.roughguides.com/feed/', name: 'Rough Guides' },
+  { url: 'https://www.cntraveller.com/feed/rss', name: 'CN Traveller' },
+  { url: 'https://www.telegraph.co.uk/travel/rss/', name: 'Telegraph Travel' },
 ];
 
 const EUROPE_KEYWORDS = [
@@ -159,6 +159,11 @@ const BLOCKED_KEYWORDS = [
   '% off', 'flash sale', 'limited time offer', 'save on', 'best price',
   'lowest price', 'price alert', 'price comparison',
   'new england', 'new ireland',
+  // non-European destinations
+  'brazil', 'rio de janeiro', 'rio favela', 'morocco', 'marrakech', 'marrakesh',
+  'dubai', 'abu dhabi', 'thailand', 'bali', 'japan', 'tokyo', 'australia', 'sydney',
+  'canada', 'mexico', 'india', 'china', 'africa', 'kenya', 'tanzania', 'maldives',
+  'caribbean', 'cuba', 'new york', 'las vegas', 'florida', 'hawaii',
   'football', 'soccer', 'tennis', 'golf', 'rugby', 'cricket', 'basketball', 'handball',
   'formula 1', 'formula one', 'grand prix', 'wimbledon', 'champions league',
   'premier league', 'bundesliga', 'serie a', 'la liga', 'ligue 1',
@@ -277,6 +282,10 @@ async function fetchFresh(apiKey) {
     const rawUrl = a.url || '';
     if (!rawTitle || !rawUrl || seen.has(rawUrl)) continue;
 
+    // Skip articles older than 60 days
+    const pubDate = new Date(a.dateTime || a.date || a.publishedAt);
+    if (isNaN(pubDate) || (Date.now() - pubDate.getTime()) > 60 * 24 * 60 * 60 * 1000) continue;
+
     const titleLower = rawTitle.toLowerCase();
 
     let blocked = false;
@@ -286,11 +295,16 @@ async function fetchFresh(apiKey) {
     if (blocked) { monitor.filter.blockedKeyword++; continue; }
 
     const descLower = ((a.description || a.body || '')).toLowerCase();
+    // For RSS articles from general travel sites, require Europe keyword in title
+    // For API articles and theme-park RSS, also check description
+    const isGeneralTravel = a._fromRSS && (
+      (a.source && (a.source.name === 'Guardian Travel' || a.source.name === 'CN Traveller' || a.source.name === 'Telegraph Travel'))
+    );
     let hasEurope = false;
     for (let k = 0; k < EUROPE_KEYWORDS.length; k++) {
-      if (titleLower.indexOf(EUROPE_KEYWORDS[k]) !== -1 || descLower.indexOf(EUROPE_KEYWORDS[k]) !== -1) {
-        hasEurope = true; break;
-      }
+      var inTitle = titleLower.indexOf(EUROPE_KEYWORDS[k]) !== -1;
+      var inDesc = !isGeneralTravel && descLower.indexOf(EUROPE_KEYWORDS[k]) !== -1;
+      if (inTitle || inDesc) { hasEurope = true; break; }
     }
     if (!hasEurope) { monitor.filter.noEurope++; continue; }
 
