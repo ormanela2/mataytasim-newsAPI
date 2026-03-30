@@ -1,28 +1,43 @@
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                                                                                                                                                                                                                                                                                                                                                                                 const NEWSAPI_AI_ENDPOINT = 'https://eventregistry.org/api/v1/article/getArticles';                                                                                                                               const EUROPE_LOCATION_URI = 'http://en.wikipedia.org/wiki/Europe';                                                                                                                                              
-  // 2 queries per refresh = 2 tokens. At 4 refreshes/day = 8 tokens/day.
-  // 2000 free tokens lasts ~250 days.
-  // NOTE: locationUri must be top-level — inside $query it is ignored by the API.
-
-  const NEWS_QUERIES = [
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+                                                                                                                                                                                                                    const NEWSAPI_AI_ENDPOINT = 'https://eventregistry.org/api/v1/article/getArticles';                                                                                                                               const EUROPE_LOCATION_URI = 'http://en.wikipedia.org/wiki/Europe';                                                                                                                                              
+  // 3 queries per refresh = 3 tokens. At 4 refreshes/day = 12 tokens/day.                                                                                                                                          // 2000 free tokens lasts ~166 days.                                                                                                                                                                              // NOTE: locationUri must be top-level — inside $query it is ignored by the API.                                                                                                                                                                                                                                                                                                                                                    const NEWS_QUERIES = [
     {
+      // Family travel & destinations
       name: 'family-travel',
-      keyword: 'family travel OR with kids OR family vacation OR kid-friendly OR traveling with children OR family holiday OR family activities',
+      keyword: 'family travel OR with kids OR family vacation OR kid-friendly OR traveling with children OR family holiday OR family activities OR family trip Europe',
       count: 50,
     },
     {
+      // Parks, attractions & events
       name: 'attractions-events',
-      keyword: 'Efteling OR Europa-Park OR "Disneyland Paris" OR Legoland OR Gardaland OR PortAventura OR "Alton Towers" OR "Thorpe Park" OR Energylandia OR Tivoli OR theme park opening OR water park opening OR
-   roller coaster opening OR "Christmas market" OR museum opening OR "tourist tax" OR ETIAS OR "direct flights to Israel" OR "new airport terminal"',
-      count: 100,
+      keyword: 'Efteling OR Europa-Park OR "Disneyland Paris" OR Legoland OR Gardaland OR PortAventura OR "Alton Towers" OR "Thorpe Park" OR Energylandia OR Tivoli OR Phantasialand OR "Puy du Fou" OR "Parc
+  Asterix" OR Liseberg OR theme park opening OR water park opening OR new attraction OR roller coaster opening OR "Christmas market" OR festival Europe OR museum opening OR "free museum" OR "open air" OR
+  "summer season opens"',
+      count: 80,
+    },
+    {
+      // Travel alerts: flights, strikes, taxes, logistics
+      name: 'travel-alerts',
+      keyword: '"tourist tax" OR "city tax" tourism OR transport strike Europe OR airport strike OR "flight disruption" OR "new route" Israel OR "direct flight" Israel Europe OR "Ryanair" OR "Wizz Air" OR
+  "easyJet" Israel OR ETIAS OR "low emission zone" OR "airport delay" OR "rail strike" OR "new train" Europe OR "high speed rail" OR "border control" Europe OR "travel warning" Europe',
+      count: 70,
     },
   ];
 
-  // RSS feeds — confirmed working from monitor
+  // RSS feeds — free, no token cost
   const RSS_FEEDS = [
+    // Theme parks & attractions
     { url: 'https://www.blooloop.com/feed/', name: 'Blooloop' },
     { url: 'https://www.amusementtoday.com/feed/', name: 'Amusement Today' },
+    { url: 'https://insidethemagic.net/feed/', name: 'Inside the Magic' },
+    // Aviation & routes
+    { url: 'https://simpleflying.com/feed/', name: 'Simple Flying' },
+    // General travel
+    { url: 'https://www.travelandleisure.com/rss', name: 'Travel + Leisure' },
+    { url: 'https://www.lonelyplanet.com/news/feed', name: 'Lonely Planet' },
   ];
 
+  // Used only for RSS article Europe check
   const EUROPE_KEYWORDS = [
     'europe', 'european',
     'france', 'french', 'spain', 'spanish', 'italy', 'italian', 'germany', 'german',
@@ -37,6 +52,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                             
     'copenhagen', 'stockholm', 'oslo', 'dublin', 'edinburgh', 'munich', 'zurich',
     'santorini', 'mykonos', 'tuscany', 'provence', 'bavarian', 'bavaria',
     'mediterranean', 'scandinavia', 'scandinavian', 'alps', 'adriatic', 'aegean',
+    // parks with no country name in title
     'disneyland paris', 'disney paris', 'efteling', 'phantasialand', 'europa-park', 'europa park',
     'tivoli', 'portaventura', 'gardaland', 'legoland windsor', 'alton towers', 'thorpe park',
     'parc asterix', 'puy du fou', 'walibi', 'heide park', 'movie park germany',
@@ -132,7 +148,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                             
     const today = new Date().toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // ── NewsAPI.ai queries (simple format — locationUri at top level) ──
+    // ── NewsAPI.ai queries ──
     const apiResults = await Promise.all(NEWS_QUERIES.map(async ({ name, keyword, count }) => {
       const body = {
         action: 'getArticles',
@@ -166,7 +182,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                             
       }
     }));
 
-    // ── RSS feeds ─────────────────────────────────────────────
+    // ── RSS feeds ──
     const rssResults = await Promise.all(RSS_FEEDS.map(async ({ url, name }) => {
       try {
         const res = await fetch(url, {
@@ -187,10 +203,9 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                             
       }
     }));
 
-    // ── Filter ────────────────────────────────────────────────
+    // ── Filter ──
     const seen = new Set();
     let articles = [];
-
     const allArticles = [...apiResults.flat(), ...rssResults.flat()];
 
     for (const a of allArticles) {
@@ -200,13 +215,11 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                             
 
       const titleLower = rawTitle.toLowerCase();
 
-      // Block unwanted content
       if (BLOCKED_KEYWORDS.some(kw => titleLower.includes(kw))) {
         monitor.filter.blockedKeyword++;
         continue;
       }
 
-      // Europe safety filter — applied to ALL articles (locationUri is not 100% reliable)
       const descLower = (a.description || a.body || '').toLowerCase();
       const hasEurope = EUROPE_KEYWORDS.some(kw => titleLower.includes(kw) || descLower.includes(kw));
       if (!hasEurope) {
@@ -243,10 +256,9 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours                             
       });
     }
 
-    // Sort by date, newest first
     articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
-    // ── Translate to Hebrew ───────────────────────────────────
+    // ── Translate to Hebrew ──
     const translateKey = process.env.GOOGLE_TRANSLATE_KEY;
     if (translateKey && articles.length) {
       try {
