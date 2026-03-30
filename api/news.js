@@ -98,8 +98,8 @@ const RSS_FEEDS = [
   { url: 'https://www.amusementtoday.com/feed/', name: 'Amusement Today' },
   { url: 'https://insidethemagic.net/feed/', name: 'Inside the Magic' },
   { url: 'https://airlinegeeks.com/feed/', name: 'Airline Geeks' },
-  { url: 'https://www.travelpulse.com/rss', name: 'Travel Pulse' },
-  { url: 'https://euroweeklynews.com/feed/', name: 'Euro Weekly News' },
+  { url: 'https://www.thetravel.com/feed/', name: 'The Travel' },
+  { url: 'https://www.loveexploring.com/feeds/articles', name: 'Love Exploring' },
 ];
 
 const EUROPE_KEYWORDS = [
@@ -136,6 +136,12 @@ const BLOCKED_KEYWORDS = [
   'cannabis', 'drug', 'cancer', 'disease', 'overdose',
   'oil', 'stock', 'crypto', 'bitcoin',
   'terror', 'terrorist', 'massage',
+  // health & immigration (not travel)
+  'healthcare', 'health care', 'waiting list', 'deportation', 'detention',
+  'immigration rules', 'immigration law',
+  // local lifestyle noise
+  'charity bash', 'biker', 'motorcycle club', 'humpback', 'stranded whale',
+  'fish and chips', 'restaurant review',
   'ticketing partner', 'ticketing provider', 'ticketing technology', 'ticketing solution',
   'speaker lineup', 'keynote speaker', 'conference speaker', 'announces speakers',
   'official partner', 'technology partner', 'signs deal', 'multi-year deal', 'seven-season',
@@ -206,20 +212,21 @@ async function fetchFresh(apiKey) {
     const name = q.name;
     const keywords = q.keywords;
     const count = q.count;
-    const body = {
-      action: 'getArticles',
-      query: {
-        $query: {
-          $and: [
-            { locationUri: COUNTRY_URIS },
-            { conceptUri: TOURISM_CONCEPT_URI },
-            { $or: keywords },
-          ],
-          $not: {
-            conceptUri: BLOCKED_CONCEPT_URIS,
-          },
+    const queryObj = {
+      $query: {
+        $and: [
+          { locationUri: COUNTRY_URIS },
+          { conceptUri: TOURISM_CONCEPT_URI },
+          { $or: keywords },
+        ],
+        $not: {
+          conceptUri: BLOCKED_CONCEPT_URIS,
         },
       },
+    };
+    const body = {
+      action: 'getArticles',
+      query: JSON.stringify(queryObj),
       lang: 'eng',
       dateStart: thirtyDaysAgo,
       dateEnd: today,
