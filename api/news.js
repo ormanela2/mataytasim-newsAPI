@@ -94,12 +94,14 @@ const NEWS_QUERIES = [
 
 // RSS feeds — free, no token cost
 const RSS_FEEDS = [
+  // Theme parks & attractions
   { url: 'https://www.blooloop.com/feed/', name: 'Blooloop' },
-  { url: 'https://www.amusementtoday.com/feed/', name: 'Amusement Today' },
   { url: 'https://insidethemagic.net/feed/', name: 'Inside the Magic' },
-  { url: 'https://airlinegeeks.com/feed/', name: 'Airline Geeks' },
-  { url: 'https://www.thetravel.com/feed/', name: 'The Travel' },
-  { url: 'https://www.loveexploring.com/feeds/articles', name: 'Love Exploring' },
+  { url: 'https://www.coasterforce.com/feed/', name: 'CoasterForce' },
+  // General Europe travel
+  { url: 'https://www.theguardian.com/travel/rss', name: 'Guardian Travel' },
+  { url: 'https://www.wanderlust.co.uk/feed/', name: 'Wanderlust' },
+  { url: 'https://www.roughguides.com/feed/', name: 'Rough Guides' },
 ];
 
 const EUROPE_KEYWORDS = [
@@ -215,7 +217,6 @@ async function fetchFresh(apiKey) {
     const body = {
       action: 'getArticles',
       keyword: keywords.map(function(k) { return k.keyword; }).join(' OR '),
-      lang: 'eng',
       dateStart: thirtyDaysAgo,
       dateEnd: today,
       articlesPage: 1,
