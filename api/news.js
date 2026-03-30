@@ -41,27 +41,24 @@ const BLOCKED_CONCEPT_URIS = [
 
 const NEWS_QUERIES = [
   {
-    name: 'family-travel',
+    // Israel <-> Europe flights: new routes, cancellations, disruptions
+    name: 'israel-flights',
     keywords: [
-      { keyword: 'family travel', keywordLoc: 'title' },
-      { keyword: 'family vacation', keywordLoc: 'title' },
-      { keyword: 'family holiday', keywordLoc: 'title' },
-      { keyword: 'with kids', keywordLoc: 'title' },
-      { keyword: 'kid-friendly', keywordLoc: 'title' },
-      { keyword: 'family activities', keywordLoc: 'title' },
-      { keyword: 'traveling with children', keywordLoc: 'body' },
+      { keyword: 'Tel Aviv', keywordLoc: 'title' },
+      { keyword: 'Ben Gurion', keywordLoc: 'title' },
+      { keyword: 'El Al', keywordLoc: 'title' },
+      { keyword: 'Wizz Air Israel', keywordLoc: 'body' },
+      { keyword: 'Ryanair Israel', keywordLoc: 'body' },
+      { keyword: 'easyJet Israel', keywordLoc: 'body' },
+      { keyword: 'new route Israel', keywordLoc: 'body' },
+      { keyword: 'direct flight Israel', keywordLoc: 'body' },
     ],
-    count: 50,
+    count: 60,
   },
   {
-    name: 'attractions-events',
+    // Park & attraction openings in Europe
+    name: 'attractions-openings',
     keywords: [
-      { keyword: 'theme park', keywordLoc: 'title' },
-      { keyword: 'new attraction', keywordLoc: 'title' },
-      { keyword: 'water park opening', keywordLoc: 'title' },
-      { keyword: 'roller coaster', keywordLoc: 'title' },
-      { keyword: 'museum opening', keywordLoc: 'title' },
-      { keyword: 'summer season opens', keywordLoc: 'title' },
       { keyword: 'Efteling', keywordLoc: 'body' },
       { keyword: 'Disneyland Paris', keywordLoc: 'body' },
       { keyword: 'Europa-Park', keywordLoc: 'body' },
@@ -70,23 +67,27 @@ const NEWS_QUERIES = [
       { keyword: 'Phantasialand', keywordLoc: 'body' },
       { keyword: 'Alton Towers', keywordLoc: 'body' },
       { keyword: 'Puy du Fou', keywordLoc: 'body' },
-      { keyword: 'Parc Asterix', keywordLoc: 'body' },
+      { keyword: 'water park opening', keywordLoc: 'title' },
+      { keyword: 'theme park opens', keywordLoc: 'title' },
+      { keyword: 'new attraction opens', keywordLoc: 'title' },
     ],
-    count: 80,
+    count: 70,
   },
   {
+    // Travel alerts: borders, strikes, visa, ETIAS, disruptions
     name: 'travel-alerts',
     keywords: [
-      { keyword: 'tourist tax', keywordLoc: 'title' },
+      { keyword: 'ETIAS', keywordLoc: 'body' },
+      { keyword: 'Schengen visa', keywordLoc: 'title' },
+      { keyword: 'border closed', keywordLoc: 'title' },
+      { keyword: 'border crossing', keywordLoc: 'title' },
       { keyword: 'airport strike', keywordLoc: 'title' },
       { keyword: 'flight disruption', keywordLoc: 'title' },
-      { keyword: 'travel warning', keywordLoc: 'title' },
-      { keyword: 'ETIAS', keywordLoc: 'title' },
+      { keyword: 'flight cancellation', keywordLoc: 'title' },
+      { keyword: 'travel warning Europe', keywordLoc: 'body' },
+      { keyword: 'tourist tax', keywordLoc: 'title' },
       { keyword: 'rail strike', keywordLoc: 'title' },
-      { keyword: 'border control', keywordLoc: 'title' },
-      { keyword: 'low emission zone', keywordLoc: 'title' },
-      { keyword: 'new route Israel', keywordLoc: 'body' },
-      { keyword: 'direct flight Israel', keywordLoc: 'body' },
+      { keyword: 'entry requirements', keywordLoc: 'title' },
     ],
     count: 70,
   },
@@ -94,14 +95,15 @@ const NEWS_QUERIES = [
 
 // RSS feeds — free, no token cost
 const RSS_FEEDS = [
-  // Theme parks & attractions
+  // Theme parks & attractions (Europe-heavy)
   { url: 'https://www.blooloop.com/feed/', name: 'Blooloop' },
   { url: 'https://insidethemagic.net/feed/', name: 'Inside the Magic' },
   { url: 'https://themeparktourist.com/feed/', name: 'Theme Park Tourist' },
-  // General Europe travel
+  // Aviation & route news
+  { url: 'https://simpleflying.com/feed/', name: 'Simple Flying' },
+  { url: 'https://airlinegeeks.com/feed/', name: 'Airline Geeks' },
+  // European travel alerts & news
   { url: 'https://www.theguardian.com/travel/rss', name: 'Guardian Travel' },
-  { url: 'https://www.cntraveller.com/feed/rss', name: 'CN Traveller' },
-  { url: 'https://www.telegraph.co.uk/travel/rss/', name: 'Telegraph Travel' },
 ];
 
 const EUROPE_KEYWORDS = [
@@ -241,7 +243,7 @@ async function fetchFresh(apiKey) {
       });
       const data = await res.json();
       const results = (data && data.articles && data.articles.results) ? data.articles.results : [];
-      monitor.queries[name] = { fetched: results.length, passed: 0, totalResults: data && data.articles ? data.articles.totalResults : 0 };
+      monitor.queries[name] = { fetched: results.length, passed: 0, totalResults: data && data.articles ? data.articles.totalResults : 0, _debug: data && !data.articles ? JSON.stringify(data).slice(0, 200) : undefined };
       return results.map(function(a) { return Object.assign({}, a, { _sourceQuery: name }); });
     } catch (e) {
       monitor.queries[name] = { fetched: 0, passed: 0, error: e.message };
