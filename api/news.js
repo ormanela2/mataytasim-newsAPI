@@ -39,56 +39,24 @@ const BLOCKED_CONCEPT_URIS = [
   'http://en.wikipedia.org/wiki/Military',
 ];
 
+// Free plan limit: 15 keywords (words) per query
 const NEWS_QUERIES = [
   {
-    // Israel <-> Europe flights: new routes, cancellations, disruptions
+    // Israel <-> Europe flights (13 words)
     name: 'israel-flights',
-    keywords: [
-      { keyword: 'Tel Aviv', keywordLoc: 'title' },
-      { keyword: 'Ben Gurion', keywordLoc: 'title' },
-      { keyword: 'El Al', keywordLoc: 'title' },
-      { keyword: 'Wizz Air Israel', keywordLoc: 'body' },
-      { keyword: 'Ryanair Israel', keywordLoc: 'body' },
-      { keyword: 'easyJet Israel', keywordLoc: 'body' },
-      { keyword: 'new route Israel', keywordLoc: 'body' },
-      { keyword: 'direct flight Israel', keywordLoc: 'body' },
-    ],
+    keyword: 'El Al OR Ben Gurion OR Tel Aviv flight OR Wizz Air Israel',
     count: 60,
   },
   {
-    // Park & attraction openings in Europe
+    // European park & attraction openings (13 words)
     name: 'attractions-openings',
-    keywords: [
-      { keyword: 'Efteling', keywordLoc: 'body' },
-      { keyword: 'Disneyland Paris', keywordLoc: 'body' },
-      { keyword: 'Europa-Park', keywordLoc: 'body' },
-      { keyword: 'Legoland', keywordLoc: 'body' },
-      { keyword: 'Energylandia', keywordLoc: 'body' },
-      { keyword: 'Phantasialand', keywordLoc: 'body' },
-      { keyword: 'Alton Towers', keywordLoc: 'body' },
-      { keyword: 'Puy du Fou', keywordLoc: 'body' },
-      { keyword: 'water park opening', keywordLoc: 'title' },
-      { keyword: 'theme park opens', keywordLoc: 'title' },
-      { keyword: 'new attraction opens', keywordLoc: 'title' },
-    ],
+    keyword: 'Efteling OR Legoland OR Alton Towers OR Disneyland Paris OR water park opening',
     count: 70,
   },
   {
-    // Travel alerts: borders, strikes, visa, ETIAS, disruptions
+    // Travel alerts: borders, strikes, visa, disruptions (13 words)
     name: 'travel-alerts',
-    keywords: [
-      { keyword: 'ETIAS', keywordLoc: 'body' },
-      { keyword: 'Schengen visa', keywordLoc: 'title' },
-      { keyword: 'border closed', keywordLoc: 'title' },
-      { keyword: 'border crossing', keywordLoc: 'title' },
-      { keyword: 'airport strike', keywordLoc: 'title' },
-      { keyword: 'flight disruption', keywordLoc: 'title' },
-      { keyword: 'flight cancellation', keywordLoc: 'title' },
-      { keyword: 'travel warning Europe', keywordLoc: 'body' },
-      { keyword: 'tourist tax', keywordLoc: 'title' },
-      { keyword: 'rail strike', keywordLoc: 'title' },
-      { keyword: 'entry requirements', keywordLoc: 'title' },
-    ],
+    keyword: 'ETIAS OR airport strike OR border closed OR flight disruption OR tourist tax',
     count: 70,
   },
 ];
@@ -219,11 +187,10 @@ async function fetchFresh(apiKey) {
 
   const apiResults = await Promise.all(NEWS_QUERIES.map(async function(q) {
     const name = q.name;
-    const keywords = q.keywords;
     const count = q.count;
     const body = {
       action: 'getArticles',
-      keyword: keywords.map(function(k) { return k.keyword; }).join(' OR '),
+      keyword: q.keyword,
       dateStart: thirtyDaysAgo,
       dateEnd: today,
       articlesPage: 1,
