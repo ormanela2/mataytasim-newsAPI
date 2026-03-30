@@ -1,77 +1,47 @@
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
-const NEWSAPI_AI_ENDPOINT = 'https://eventregistry.org/api/v1/article/getArticles';
+// NewsData.io — free plan: 200 credits/day, 10 results per request
+// Each query = 1 credit. We run 4 queries = 4 credits per refresh.
+const NEWSDATA_ENDPOINT = 'https://newsdata.io/api/1/news';
 
-// 3 queries per refresh = 3 tokens. At 4 refreshes/day = 12 tokens/day.
-// 2000 free tokens lasts ~166 days.
-// Uses $query format: locationUri + conceptUri(Tourism) + $not(Crime/Politics/War)
-
-const COUNTRY_URIS = [
-  'http://en.wikipedia.org/wiki/Poland',
-  'http://en.wikipedia.org/wiki/Hungary',
-  'http://en.wikipedia.org/wiki/Austria',
-  'http://en.wikipedia.org/wiki/Romania',
-  'http://en.wikipedia.org/wiki/Slovakia',
-  'http://en.wikipedia.org/wiki/Slovenia',
-  'http://en.wikipedia.org/wiki/Germany',
-  'http://en.wikipedia.org/wiki/Netherlands',
-  'http://en.wikipedia.org/wiki/Italy',
-  'http://en.wikipedia.org/wiki/France',
-  'http://en.wikipedia.org/wiki/Spain',
-  'http://en.wikipedia.org/wiki/Greece',
-  'http://en.wikipedia.org/wiki/Portugal',
-  'http://en.wikipedia.org/wiki/Czech_Republic',
-  'http://en.wikipedia.org/wiki/Croatia',
-  'http://en.wikipedia.org/wiki/Belgium',
-  'http://en.wikipedia.org/wiki/Switzerland',
-  'http://en.wikipedia.org/wiki/Denmark',
-  'http://en.wikipedia.org/wiki/Sweden',
-  'http://en.wikipedia.org/wiki/Ireland',
-  'http://en.wikipedia.org/wiki/United_Kingdom',
-];
-
-const TOURISM_CONCEPT_URI = 'http://en.wikipedia.org/wiki/Tourism';
-
-const BLOCKED_CONCEPT_URIS = [
-  'http://en.wikipedia.org/wiki/Crime',
-  'http://en.wikipedia.org/wiki/Politics_of_Europe',
-  'http://en.wikipedia.org/wiki/War',
-  'http://en.wikipedia.org/wiki/Military',
-];
-
-// Free plan limit: 15 keywords (words) per query
 const NEWS_QUERIES = [
   {
-    // Israel <-> Europe flights (13 words)
+    // Israel <-> Europe flights: cancellations, new routes, disruptions
     name: 'israel-flights',
-    keyword: 'El Al OR Ben Gurion OR Tel Aviv flight OR Wizz Air Israel',
-    count: 60,
+    q: 'Israel flight Europe OR "El Al" OR "Wizz Air" OR "Ben Gurion" route',
+    language: 'en',
   },
   {
-    // European park & attraction openings (13 words)
+    // Theme park & attraction openings in Europe
     name: 'attractions-openings',
-    keyword: 'Efteling OR Legoland OR Alton Towers OR Disneyland Paris OR water park opening',
-    count: 70,
+    q: 'theme park opening Europe OR Disneyland Paris OR Legoland OR Efteling OR "water park"',
+    language: 'en',
+    category: 'entertainment',
   },
   {
-    // Travel alerts: borders, strikes, visa, disruptions (13 words)
+    // Travel alerts: visa, strikes, border closures, warnings
     name: 'travel-alerts',
-    keyword: 'ETIAS OR airport strike OR border closed OR flight disruption OR tourist tax',
-    count: 70,
+    q: 'ETIAS OR "airport strike" OR "border closed" OR "travel warning" OR "tourist visa" Europe',
+    language: 'en',
+  },
+  {
+    // General European travel news
+    name: 'europe-travel',
+    q: 'Europe travel 2025 OR 2026 tourist attraction holiday',
+    language: 'en',
   },
 ];
 
-// RSS feeds — free, no token cost
+// RSS feeds — free, no credit cost
 const RSS_FEEDS = [
   // Theme parks & attractions (Europe-heavy)
   { url: 'https://www.blooloop.com/feed/', name: 'Blooloop' },
   { url: 'https://insidethemagic.net/feed/', name: 'Inside the Magic' },
-  { url: 'https://themeparktourist.com/feed/', name: 'Theme Park Tourist' },
-  // Aviation & route news
-  { url: 'https://simpleflying.com/feed/', name: 'Simple Flying' },
-  { url: 'https://airlinegeeks.com/feed/', name: 'Airline Geeks' },
-  // European travel alerts & news
+  // European travel news
   { url: 'https://www.theguardian.com/travel/rss', name: 'Guardian Travel' },
+  { url: 'https://www.lonelyplanet.com/news/feed', name: 'Lonely Planet' },
+  { url: 'https://www.timeout.com/travel/news/rss', name: 'Time Out Travel' },
+  { url: 'https://skift.com/feed/', name: 'Skift' },
 ];
 
 const EUROPE_KEYWORDS = [
@@ -92,6 +62,8 @@ const EUROPE_KEYWORDS = [
   'tivoli', 'portaventura', 'gardaland', 'legoland windsor', 'alton towers', 'thorpe park',
   'parc asterix', 'puy du fou', 'walibi', 'heide park', 'movie park germany',
   'energylandia', 'liseberg', 'plopsaland', 'bobbejaanland',
+  // Israel routes
+  'el al', 'wizz air', 'easyjet', 'ryanair', 'ben gurion', 'tel aviv',
 ];
 
 const BLOCKED_KEYWORDS = [
@@ -144,23 +116,22 @@ const BLOCKED_KEYWORDS = [
 let memCache = null;
 
 function extractTag(xml, tag) {
-  const cdata = new RegExp('<' + tag + '[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/' + tag + '>', 'i');
-  const plain = new RegExp('<' + tag + '[^>]*>([^<]{0,1000})<\\/' + tag + '>', 'i');
-  return (xml.match(cdata) || xml.match(plain)) && (xml.match(cdata) || xml.match(plain))[1]
-    ? (xml.match(cdata) || xml.match(plain))[1].trim()
-    : '';
+  var cdata = new RegExp('<' + tag + '[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/' + tag + '>', 'i');
+  var plain = new RegExp('<' + tag + '[^>]*>([^<]{0,1000})<\\/' + tag + '>', 'i');
+  var m = xml.match(cdata) || xml.match(plain);
+  return (m && m[1]) ? m[1].trim() : '';
 }
 
 function parseRSS(xml, sourceName) {
-  const articles = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-  let match;
+  var articles = [];
+  var itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  var match;
   while ((match = itemRegex.exec(xml)) !== null) {
-    const item = match[1];
-    const title = extractTag(item, 'title');
-    const link = extractTag(item, 'link') || extractTag(item, 'guid');
-    const desc = extractTag(item, 'description').replace(/<[^>]+>/g, '').slice(0, 500);
-    const pubDate = extractTag(item, 'pubDate') || extractTag(item, 'dc:date');
+    var item = match[1];
+    var title = extractTag(item, 'title');
+    var link = extractTag(item, 'link') || extractTag(item, 'guid');
+    var desc = extractTag(item, 'description').replace(/<[^>]+>/g, '').slice(0, 500);
+    var pubDate = extractTag(item, 'pubDate') || extractTag(item, 'dc:date');
     if (!title || !link || !link.startsWith('http')) continue;
     articles.push({
       title: title,
@@ -175,42 +146,37 @@ function parseRSS(xml, sourceName) {
 }
 
 async function fetchFresh(apiKey) {
-  const monitor = {
+  var monitor = {
     queries: {},
     rssFeeds: {},
     filter: { blockedKeyword: 0, noEurope: 0, passed: 0 },
     bySource: {},
   };
 
-  const today = new Date().toISOString().split('T')[0];
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  // Fetch from NewsData.io
+  var apiResults = await Promise.all(NEWS_QUERIES.map(async function(q) {
+    var name = q.name;
+    var params = new URLSearchParams({
+      apikey: apiKey,
+      q: q.q,
+      language: q.language || 'en',
+      size: 10,
+    });
+    if (q.category) params.set('category', q.category);
 
-  const apiResults = await Promise.all(NEWS_QUERIES.map(async function(q) {
-    const name = q.name;
-    const count = q.count;
-    const body = {
-      action: 'getArticles',
-      keyword: q.keyword,
-      dateStart: thirtyDaysAgo,
-      dateEnd: today,
-      articlesPage: 1,
-      articlesCount: count,
-      articlesSortBy: 'date',
-      articlesSortByAsc: false,
-      articleBodyLen: 500,
-      resultType: 'articles',
-      dataType: ['news', 'blog'],
-      apiKey: apiKey,
-    };
     try {
-      const res = await fetch(NEWSAPI_AI_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      var res = await fetch(NEWSDATA_ENDPOINT + '?' + params.toString(), {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(8000),
       });
-      const data = await res.json();
-      const results = (data && data.articles && data.articles.results) ? data.articles.results : [];
-      monitor.queries[name] = { fetched: results.length, passed: 0, totalResults: data && data.articles ? data.articles.totalResults : 0, _debug: data && !data.articles ? JSON.stringify(data).slice(0, 200) : undefined };
+      var data = await res.json();
+      var results = (data && Array.isArray(data.results)) ? data.results : [];
+      monitor.queries[name] = {
+        fetched: results.length,
+        passed: 0,
+        totalResults: data && data.totalResults ? data.totalResults : 0,
+        _debug: (data && data.status !== 'success') ? JSON.stringify(data).slice(0, 400) : undefined,
+      };
       return results.map(function(a) { return Object.assign({}, a, { _sourceQuery: name }); });
     } catch (e) {
       monitor.queries[name] = { fetched: 0, passed: 0, error: e.message };
@@ -218,11 +184,12 @@ async function fetchFresh(apiKey) {
     }
   }));
 
-  const rssResults = await Promise.all(RSS_FEEDS.map(async function(feed) {
-    const url = feed.url;
-    const name = feed.name;
+  // Fetch RSS feeds
+  var rssResults = await Promise.all(RSS_FEEDS.map(async function(feed) {
+    var url = feed.url;
+    var name = feed.name;
     try {
-      const res = await fetch(url, {
+      var res = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0' },
         signal: AbortSignal.timeout(5000),
       });
@@ -230,8 +197,8 @@ async function fetchFresh(apiKey) {
         monitor.rssFeeds[name] = { status: 'http_error', code: res.status, fetched: 0, passed: 0 };
         return [];
       }
-      const xml = await res.text();
-      const items = parseRSS(xml, name);
+      var xml = await res.text();
+      var items = parseRSS(xml, name);
       monitor.rssFeeds[name] = { status: 'ok', fetched: items.length, passed: 0 };
       return items.map(function(a) { return Object.assign({}, a, { _sourceQuery: 'rss:' + name }); });
     } catch (e) {
@@ -240,39 +207,39 @@ async function fetchFresh(apiKey) {
     }
   }));
 
-  const seen = new Set();
-  let articles = [];
-  const allArticles = apiResults.reduce(function(acc, val) { return acc.concat(val); }, [])
+  var seen = new Set();
+  var articles = [];
+  var allArticles = apiResults.reduce(function(acc, val) { return acc.concat(val); }, [])
     .concat(rssResults.reduce(function(acc, val) { return acc.concat(val); }, []));
 
-  for (let i = 0; i < allArticles.length; i++) {
-    const a = allArticles[i];
-    const rawTitle = a.title || '';
-    const rawUrl = a.url || '';
+  for (var i = 0; i < allArticles.length; i++) {
+    var a = allArticles[i];
+    // NewsData.io uses `link` and `pubDate`; RSS uses `url` and `publishedAt`
+    var rawTitle = a.title || '';
+    var rawUrl = a.link || a.url || '';
     if (!rawTitle || !rawUrl || seen.has(rawUrl)) continue;
 
     // Skip articles older than 60 days
-    const pubDate = new Date(a.dateTime || a.date || a.publishedAt);
+    var pubDate = new Date(a.pubDate || a.publishedAt);
     if (isNaN(pubDate) || (Date.now() - pubDate.getTime()) > 60 * 24 * 60 * 60 * 1000) continue;
 
-    const titleLower = rawTitle.toLowerCase();
+    var titleLower = rawTitle.toLowerCase();
 
-    let blocked = false;
-    for (let k = 0; k < BLOCKED_KEYWORDS.length; k++) {
+    var blocked = false;
+    for (var k = 0; k < BLOCKED_KEYWORDS.length; k++) {
       if (titleLower.indexOf(BLOCKED_KEYWORDS[k]) !== -1) { blocked = true; break; }
     }
     if (blocked) { monitor.filter.blockedKeyword++; continue; }
 
-    const descLower = ((a.description || a.body || '')).toLowerCase();
-    // For RSS articles from general travel sites, require Europe keyword in title
-    // For API articles and theme-park RSS, also check description
-    const isGeneralTravel = a._fromRSS && (
-      (a.source && (a.source.name === 'Guardian Travel' || a.source.name === 'CN Traveller' || a.source.name === 'Telegraph Travel'))
+    var descLower = (a.description || a.content || '').toLowerCase();
+    // For general travel RSS sources, require Europe keyword in title only
+    var isGeneralTravel = a._fromRSS && (
+      a.source && (a.source.name === 'Guardian Travel' || a.source.name === 'CN Traveller' || a.source.name === 'Telegraph Travel' || a.source.name === 'Lonely Planet' || a.source.name === 'Time Out Travel')
     );
-    let hasEurope = false;
-    for (let k = 0; k < EUROPE_KEYWORDS.length; k++) {
-      var inTitle = titleLower.indexOf(EUROPE_KEYWORDS[k]) !== -1;
-      var inDesc = !isGeneralTravel && descLower.indexOf(EUROPE_KEYWORDS[k]) !== -1;
+    var hasEurope = false;
+    for (var j = 0; j < EUROPE_KEYWORDS.length; j++) {
+      var inTitle = titleLower.indexOf(EUROPE_KEYWORDS[j]) !== -1;
+      var inDesc = !isGeneralTravel && descLower.indexOf(EUROPE_KEYWORDS[j]) !== -1;
       if (inTitle || inDesc) { hasEurope = true; break; }
     }
     if (!hasEurope) { monitor.filter.noEurope++; continue; }
@@ -280,40 +247,43 @@ async function fetchFresh(apiKey) {
     seen.add(rawUrl);
     monitor.filter.passed++;
 
-    const sourceQuery = a._sourceQuery || '';
+    var sourceQuery = a._sourceQuery || '';
     if (sourceQuery && sourceQuery.indexOf('rss:') !== 0 && monitor.queries[sourceQuery]) {
       monitor.queries[sourceQuery].passed++;
     }
     if (sourceQuery.indexOf('rss:') === 0) {
-      const rssName = sourceQuery.slice(4);
+      var rssName = sourceQuery.slice(4);
       if (monitor.rssFeeds[rssName]) monitor.rssFeeds[rssName].passed++;
     }
 
-    const sourceName = (a.source && (a.source.title || a.source.name)) ? (a.source.title || a.source.name) : 'Unknown';
+    // NewsData.io source_id vs RSS source.name
+    var sourceName = (a.source_id) ? a.source_id : ((a.source && (a.source.title || a.source.name)) ? (a.source.title || a.source.name) : 'Unknown');
     monitor.bySource[sourceName] = (monitor.bySource[sourceName] || 0) + 1;
 
-    const description = a.body
-      ? a.body.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 500)
+    var description = a.content
+      ? a.content.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 500)
       : (a.description || null);
+
+    var publishedAt = a.pubDate || a.publishedAt;
 
     articles.push({
       title: rawTitle.split(' - ')[0].trim(),
       url: rawUrl,
       source: sourceName,
-      publishedAt: a.dateTime || a.date || a.publishedAt,
+      publishedAt: publishedAt,
       description: description,
-      image: a.image || null,
+      image: a.image_url || a.image || null,
     });
   }
 
   articles.sort(function(a, b) { return new Date(b.publishedAt) - new Date(a.publishedAt); });
 
-  const translateKey = process.env.GOOGLE_TRANSLATE_KEY;
+  var translateKey = process.env.GOOGLE_TRANSLATE_KEY;
   if (translateKey && articles.length) {
     try {
-      const textsToTranslate = articles.map(function(a) { return a.title; })
+      var textsToTranslate = articles.map(function(a) { return a.title; })
         .concat(articles.map(function(a) { return a.description || ''; }));
-      const res = await fetch(
+      var tres = await fetch(
         'https://translation.googleapis.com/language/translate/v2?key=' + translateKey,
         {
           method: 'POST',
@@ -321,14 +291,14 @@ async function fetchFresh(apiKey) {
           body: JSON.stringify({ q: textsToTranslate, source: 'en', target: 'he', format: 'text' }),
         }
       );
-      const data = await res.json();
-      const translations = data && data.data ? data.data.translations : null;
+      var tdata = await tres.json();
+      var translations = tdata && tdata.data ? tdata.data.translations : null;
       if (translations) {
-        const n = articles.length;
-        articles = articles.map(function(a, i) {
+        var n = articles.length;
+        articles = articles.map(function(a, idx) {
           return Object.assign({}, a, {
-            title: (translations[i] && translations[i].translatedText) ? translations[i].translatedText : a.title,
-            description: (translations[n + i] && translations[n + i].translatedText) ? translations[n + i].translatedText : a.description,
+            title: (translations[idx] && translations[idx].translatedText) ? translations[idx].translatedText : a.title,
+            description: (translations[n + idx] && translations[n + idx].translatedText) ? translations[n + idx].translatedText : a.description,
           });
         });
       }
@@ -346,11 +316,11 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const apiKey = process.env.NEWSAPI_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'Missing NEWSAPI_KEY' });
+  var apiKey = process.env.NEWSDATA_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'Missing NEWSDATA_KEY env var' });
 
-  const forceRefresh = req.query.refresh === 'true';
-  const monitorMode = req.query.monitor === 'true';
+  var forceRefresh = req.query.refresh === 'true';
+  var monitorMode = req.query.monitor === 'true';
 
   if (!forceRefresh && !monitorMode && memCache && (Date.now() - memCache.cachedAt < CACHE_TTL_MS)) {
     res.setHeader('X-Cache', 'HIT');
@@ -358,7 +328,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const payload = await fetchFresh(apiKey);
+    var payload = await fetchFresh(apiKey);
     memCache = payload;
     res.setHeader('X-Cache', 'MISS');
     if (monitorMode) return res.status(200).json(payload);
